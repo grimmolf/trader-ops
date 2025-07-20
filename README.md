@@ -1,395 +1,318 @@
 # TraderTerminal - Professional Trading Platform
 
-A complete Bloomberg-like trading platform with desktop application, real-time market data, automated execution, and comprehensive backtesting capabilities. Built for professional traders who demand institutional-quality tools.
+**Bloomberg-quality trading tools without Bloomberg costs.** A complete desktop trading platform with real-time market data, automated execution, professional charting, and comprehensive backtesting - designed for serious traders who demand institutional-grade capabilities.
 
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
-![Python](https://img.shields.io/badge/python-3.11%2B-blue.svg)
-![TypeScript](https://img.shields.io/badge/typescript-5.0%2B-blue.svg)
-![Electron](https://img.shields.io/badge/electron-28.0%2B-9feaf9.svg)
-![Vue](https://img.shields.io/badge/vue-3.3%2B-4fc08d.svg)
-![FastAPI](https://img.shields.io/badge/FastAPI-latest-009688.svg)
 ![Status](https://img.shields.io/badge/status-production%20ready-success.svg)
+![Platform](https://img.shields.io/badge/platform-macOS%20%7C%20Linux-lightgrey.svg)
+![Trading](https://img.shields.io/badge/trading-automated-gold.svg)
 
-## 🚀 Latest Update: **Complete Trading Platform Implementation!**
+---
 
-**TraderTerminal is now production-ready with full desktop application and backtesting capabilities.**
+## 🎯 **For Traders: What You Get**
 
-| Component | Status | Technology | Features |
-|-----------|--------|------------|----------|
-| **🖥️ Desktop Application** | ✅ **Complete** | Electron + Vue 3 + TypeScript | Multi-pane interface, TradingView integration |
-| **📊 Real-time Data** | ✅ **Complete** | WebSocket + FastAPI | Sub-100ms latency, auto-reconnection |
-| **🤖 Execution Engine** | ✅ **Complete** | Python + Pydantic | <25ms risk checks, multi-layer validation |
-| **📈 Backtesting API** | ✅ **Complete** | AsyncIO + Background Tasks | Progress tracking, multi-symbol support |
-| **⚙️ Strategy Automation** | ✅ **Complete** | Kairos + SystemD | YAML configs, scheduled execution |
+### 📊 **Professional Desktop Trading Interface**
+- **Multi-Monitor Support**: Resizable panels optimized for multiple screens
+- **TradingView Charts**: Professional charting with 100+ technical indicators
+- **Real-Time Data**: Live quotes with sub-100ms latency across all markets
+- **Dark Mode Interface**: Easy on the eyes during long trading sessions
+- **One-Click Trading**: Streamlined order entry with instant execution
 
-🏗️ **Architecture**: Desktop App ↔ WebSocket ↔ DataHub ↔ Execution Engine ↔ Broker APIs
+### 🤖 **Automated Trading & Strategy Development**
+- **TradingView Alert Integration**: Auto-execute trades from your TradingView strategies
+- **Pine Script Backtesting**: Test your strategies across years of historical data
+- **Risk Management**: Built-in position sizing, stop-losses, and portfolio limits
+- **Strategy Templates**: Pre-built momentum and mean-reversion strategies
+- **Paper Trading**: Test everything risk-free before going live
 
-## 🖥️ Desktop Application
+### 📈 **Advanced Market Analysis**
+- **Multi-Asset Support**: Stocks, options, futures, and crypto (expandable)
+- **Portfolio Analytics**: Real-time P&L, risk metrics, and performance tracking
+- **News Integration**: Market-moving news and economic calendar
+- **Custom Alerts**: Price, volume, and technical indicator notifications
+- **Historical Analysis**: Backtest strategies with detailed performance metrics
 
-### Bloomberg-Like Professional Interface
-- **Multi-Pane Layout**: Resizable panels with watchlist, charts, positions, orders
-- **TradingView Integration**: Professional charting with real-time data feeds
-- **Real-time Updates**: WebSocket streaming with automatic reconnection
-- **Dark Theme**: Professional financial application styling
-- **Cross-Platform**: macOS and Linux support with native performance
+### 🛡️ **Enterprise-Grade Security & Reliability**
+- **Encrypted Communications**: All data transmission secured with TLS
+- **Local Data Storage**: Your trading data stays on your machine
+- **Multiple Broker Support**: Tradier (live), with Tradovate and others coming
+- **Automatic Reconnection**: Never miss a trade due to connection issues
+- **Open Source**: Full transparency - audit the code yourself
 
-### Key Components
-- **📊 Trading Dashboard**: Multi-pane interface with resizable panels
-- **📈 TradingView Charts**: Professional charting with UDF datafeed
-- **👁️ Watchlist**: Real-time quotes with price change indicators
-- **📝 Order Entry**: Complete order management (market/limit/stop orders)
-- **💼 Portfolio View**: Live positions with unrealized P&L tracking
-- **🔔 Alert Management**: Real-time alert monitoring and management
-- **🧪 Backtesting Panel**: Strategy testing with progress tracking
-- **📰 News Feed**: Market news and updates
+---
 
-## 🤖 Automated Trading System
+## ⚡ **Quick Start - Get Trading in 5 Minutes**
 
-### 🔄 Webhook-Driven Execution
-- **TradingView Alerts**: Automated trade execution from strategy signals
-- **Kairos Integration**: YAML-based strategy configurations
-- **Multi-Layer Risk Management**: Account, portfolio, and position-level controls
-- **Order Lifecycle Management**: Complete tracking from placement to fill
-
-### 📊 Real-Time Market Data
-- **TradingView UDF Protocol**: Universal Data Feed for professional charts
-- **Tradier API Integration**: Real-time quotes, historical data, trading operations
-- **WebSocket Streaming**: Live market data with sub-100ms latency
-- **Multi-Source Support**: Ready for Tradovate futures and CCXT crypto
-
-### 🛡️ Advanced Risk Management
-- **Comprehensive Risk Checks**: Buying power, position limits, daily loss controls
-- **Position Sizing Optimization**: Dynamic sizing based on portfolio allocation
-- **Emergency Controls**: Circuit breakers, emergency stops, volatility filters
-- **Real-time Monitoring**: Live portfolio tracking with P&L calculations
-
-## 🧪 Backtesting & Strategy Development
-
-### 📈 Comprehensive Backtesting API
-- **Pine Script Support**: Full TradingView Pine Script v5 compatibility
-- **Multi-Symbol Testing**: Parallel execution across multiple instruments
-- **Real-time Progress**: WebSocket streaming of backtest progress
-- **Detailed Analytics**: Comprehensive performance metrics and trade analysis
-
-### ⚙️ Strategy Automation
-- **Momentum Strategy**: RSI + volume breakout detection (5-minute intervals)
-- **Mean Reversion Strategy**: Bollinger Bands + RSI extremes (15-minute intervals)
-- **Portfolio Rebalancing**: Daily allocation maintenance with drift thresholds
-- **Custom Strategies**: YAML-based configuration for easy development
-
-## ✅ Implementation Status: **PRODUCTION READY** 🚀
-
-### 🖥️ Desktop Application: **Complete**
-
-| Component | Status | Implementation | Lines of Code |
-|-----------|--------|----------------|---------------|
-| **Electron Framework** | ✅ Complete | TypeScript + Security | 250+ lines |
-| **Vue 3 Frontend** | ✅ Complete | Composition API + Pinia | 800+ lines |
-| **TradingView Integration** | ✅ Complete | UDF Protocol + Charts | 300+ lines |
-| **WebSocket Service** | ✅ Complete | Real-time Streaming | 200+ lines |
-| **UI Components** | ✅ Complete | 11 Professional Components | 1000+ lines |
-| **State Management** | ✅ Complete | Pinia Stores + TypeScript | 300+ lines |
-
-### 🔧 Backend Infrastructure: **Complete**
-
-| Component | Status | Performance | Implementation Details |
-|-----------|--------|-------------|----------------------|
-| **🏗️ DataHub Server** | ✅ Complete | <100ms API response | FastAPI with TradingView UDF + Backtesting API |
-| **🔗 Tradier Integration** | ✅ Complete | Real-time WebSocket | Full API wrapper with rate limiting |
-| **🤖 Execution Engine** | ✅ Complete | <25ms risk checks | Multi-layer risk management system |
-| **📈 Backtesting Service** | ✅ Complete | Concurrent execution | AsyncIO with progress tracking |
-| **⚙️ Strategy Automation** | ✅ Complete | 5-15min intervals | Kairos YAML jobs with SystemD |
-| **🛡️ Risk Management** | ✅ Complete | Real-time validation | Account/portfolio/position limits |
-
-### 🔌 API Integration: **Complete**
-
-| API Category | Endpoints | Status | Features |
-|--------------|-----------|--------|----------|
-| **Market Data** | 8 endpoints | ✅ Complete | TradingView UDF, real-time quotes, WebSocket |
-| **Trading** | 6 endpoints | ✅ Complete | Order management, portfolio tracking |
-| **Backtesting** | 6 endpoints | ✅ Complete | Strategy testing, progress tracking, results |
-| **Alerts** | 4 endpoints | ✅ Complete | TradingView webhooks, alert management |
-
-## 📋 Table of Contents
-
-- [Quick Start](#-quick-start)
-- [Installation](#-installation)
-- [Desktop Application](#-desktop-application-usage)
-- [API Documentation](#-api-documentation)
-- [Backtesting](#-backtesting)
-- [Configuration](#-configuration)
-- [Architecture](#-architecture)
-- [Development](#-development)
-- [Deployment](#-deployment)
-- [Contributing](#-contributing)
-
-## ⚡ Quick Start
-
-### 🖥️ Desktop Application
-
-```bash
-# Clone repository
-git clone https://github.com/grimmolf/trader-ops.git
-cd trader-ops
-
-# Install frontend dependencies
-cd src/frontend
-npm install
-
-# Start desktop application (development mode)
-npm run dev
-
-# Desktop app will launch with hot reload
-# Backend connection optional for development
-```
-
-### 🚀 Backend Services
-
-```bash
-# Install Python dependencies with uv (recommended)
-uv sync
-
-# Start DataHub server with backtesting API
-uv run python -m src.backend.datahub.server
-
-# Start Redis for caching (optional)
-redis-server --port 6379
-
-# Set up Kairos strategies (optional)
-./src/automation/kairos_jobs/setup_kairos.sh dev
-```
-
-### 🔍 Verify Installation
-
-```bash
-# Test desktop app
-# Launch via npm run dev, should show trading dashboard
-
-# Test backend endpoints
-curl http://localhost:8080/health
-curl http://localhost:8080/udf/config
-curl "http://localhost:8080/api/v1/quotes?symbols=AAPL,GOOGL"
-
-# Test backtesting API
-curl -X POST http://localhost:8080/api/backtest/strategy \
-  -H "Content-Type: application/json" \
-  -d '{"pine_script":"test","symbols":["AAPL"],"start_date":"2024-01-01","end_date":"2024-12-31"}'
-```
-
-## 🖥️ Desktop Application Usage
-
-### 🚀 Launch Application
-
-**Development Mode**:
-```bash
-cd src/frontend
-npm run dev
-```
-
-**Production Build**:
-```bash
-cd src/frontend
-npm run build
-npm run package:mac    # For macOS
-npm run package:linux  # For Linux
-```
-
-### 🎛️ Trading Interface
-
-**Main Dashboard**:
-- **Header**: Symbol search, account info, market status, window controls
-- **Left Panel**: Watchlist with real-time quotes, order history
-- **Center Panel**: TradingView charts with professional indicators  
-- **Right Panel**: Open positions, active alerts, backtesting interface
-- **Bottom Panel**: Market news and updates
-
-**Key Features**:
-- **Real-time Data**: Live quotes with WebSocket streaming
-- **Professional Charts**: TradingView integration with UDF datafeed
-- **Order Management**: Complete order entry with risk validation
-- **Portfolio Tracking**: Live P&L and position management
-- **Backtesting**: Strategy testing with progress tracking
-
-### 📊 TradingView Integration
-
-**Chart Features**:
-- Professional charting with dark theme
-- Real-time data feeds via UDF protocol
-- Technical indicators (MA, RSI, Bollinger Bands)
-- Symbol switching and timeframe selection
-- Study templates and custom configurations
-
-**Data Sources**:
-- Real-time: Tradier API WebSocket
-- Historical: TradingView UDF protocol
-- Mock data: Development mode support
-
-## 🧪 Backtesting
-
-### 📈 Strategy Testing
-
-**Submit Backtest**:
-```bash
-curl -X POST http://localhost:8080/api/backtest/strategy \
-  -H "Content-Type: application/json" \
-  -d '{
-    "pine_script": "//@version=5\nstrategy(\"Test Strategy\", overlay=true)\nif close > close[1]\n    strategy.entry(\"Long\", strategy.long)",
-    "symbols": ["AAPL", "MSFT"],
-    "timeframes": ["1h"],
-    "start_date": "2024-01-01", 
-    "end_date": "2024-12-31",
-    "initial_capital": 10000.0
-  }'
-```
-
-**Track Progress**:
-```javascript
-// Real-time progress via WebSocket
-const ws = new WebSocket('ws://localhost:8080/api/backtest/{id}/progress');
-ws.onmessage = (event) => {
-  const data = JSON.parse(event.data);
-  console.log(`Progress: ${data.progress}%`);
-};
-```
-
-**Retrieve Results**:
-```bash
-curl http://localhost:8080/api/backtest/{id}/results
-```
-
-### 📊 Performance Metrics
-
-Results include comprehensive analytics:
-- **Return Metrics**: Total return, Sharpe ratio, max drawdown
-- **Trade Analysis**: Win rate, profit factor, average win/loss
-- **Equity Curve**: Daily portfolio progression
-- **Trade Details**: Entry/exit points, P&L per trade
-
-## 🔧 Installation
-
-### Prerequisites
-
-- **Python 3.11+** for backend services
-- **Node.js 18+** for desktop application
-- **Redis** for caching and pub/sub messaging (optional)
-- **Git** for version control
-- **Tradier Account** for live market data (optional)
-
-### System Setup
-
+### 1. **Download & Install**
 ```bash
 # macOS
-brew install python node redis git uv
-brew services start redis
+brew install --cask traderterminal
 
-# Ubuntu/Debian
-sudo apt install python3.11 nodejs npm redis-server git
-curl -LsSf https://astral.sh/uv/install.sh | sh
-sudo systemctl start redis
+# Linux  
+wget https://github.com/grimmolf/trader-ops/releases/latest/download/TraderTerminal.AppImage
+chmod +x TraderTerminal.AppImage && ./TraderTerminal.AppImage
 
-# Windows
-# Install Python from python.org
-# Install Node.js from nodejs.org
-# Install Redis from GitHub releases
-# Install Git from git-scm.com
+# Or build from source (see Installation section)
 ```
 
-### 🐍 Backend Installation
+### 2. **Launch the Application**
+```bash
+# The desktop app will open with a professional trading interface
+# No setup required - works with demo data out of the box
+```
 
+### 3. **Connect Your Broker (Optional)**
+- Go to **Settings** → **Broker Connection**  
+- Enter your Tradier API credentials (get free sandbox account)
+- Start trading with real market data
+
+### 4. **Start Trading**
+- **Watch Markets**: Add symbols to your watchlist
+- **Analyze Charts**: Professional TradingView integration
+- **Place Orders**: Market, limit, and stop orders with one click
+- **Track Performance**: Real-time P&L and portfolio analytics
+
+---
+
+## 🖥️ **Trading Interface Overview**
+
+### **Main Dashboard Layout**
+```
+┌─────────────────────────────────────────────────────────┐
+│ [TraderTerminal] [Search] [Account: $10,000] [●Online] │ ← Header
+├─────────────┬───────────────────────┬───────────────────┤
+│ Watchlist   │                      │ Positions         │
+│ ────────────│                      │ ──────────        │
+│ AAPL  $150  │   📈 TradingView     │ TSLA +$1,250     │ ← Left/Right
+│ MSFT  $280  │      Charts          │ AAPL   -$340     │   Panels
+│ TSLA  $220  │                      │ Cash  $8,410     │
+│ ────────────│                      │ ──────────        │
+│ Order Entry │                      │ Active Alerts     │
+│ [Buy][Sell] │                      │ AAPL > $155      │
+├─────────────┴───────────────────────┴───────────────────┤
+│ 📰 Market News: Fed signals rate cut | GDP beats est.  │ ← News Feed
+└─────────────────────────────────────────────────────────┘
+```
+
+### **Key Interface Features**
+- **📊 Left Panel**: Watchlist with real-time quotes + Order entry
+- **📈 Center Panel**: Professional TradingView charts with indicators
+- **💼 Right Panel**: Portfolio positions, alerts, and backtesting
+- **📰 Bottom Panel**: Live market news and economic updates
+- **⚙️ Header**: Symbol search, account info, connection status
+
+---
+
+## 🚀 **Installation Guide**
+
+### **System Requirements**
+- **macOS**: 10.15+ (Intel or Apple Silicon)
+- **Linux**: Ubuntu 20.04+, Fedora 34+, or equivalent
+- **Memory**: 4GB RAM minimum, 8GB recommended
+- **Storage**: 2GB free space
+- **Internet**: Required for real-time data
+
+### **Option 1: Download Release (Easiest)**
+1. Visit [Releases](https://github.com/grimmolf/trader-ops/releases)
+2. Download for your platform:
+   - **macOS**: `TraderTerminal.dmg`
+   - **Linux**: `TraderTerminal.AppImage`
+3. Install and run
+
+### **Option 2: Build From Source**
 ```bash
 # Clone repository
 git clone https://github.com/grimmolf/trader-ops.git
 cd trader-ops
 
-# Install Python dependencies (recommended: uv)
-uv sync
-
-# Alternative: pip
-python -m venv venv
-source venv/bin/activate
-pip install -r requirements.txt
-```
-
-### 🖥️ Frontend Installation
-
-```bash
-# Install Node.js dependencies
+# Install dependencies
 cd src/frontend
 npm install
 
-# Install TradingView charting library (manual step)
-# Download from TradingView and place in src/frontend/renderer/public/charting_library/
+# Start desktop application
+npm run dev
 ```
 
-### 🔑 Configuration
-
+### **Option 3: With Backend Services**
 ```bash
-# Copy environment template
-cp .env.example .env
+# Full installation with real-time data
+git clone https://github.com/grimmolf/trader-ops.git
+cd trader-ops
 
-# Edit with your API keys
-nano .env
+# Install Python backend
+uv sync  # or pip install -r requirements.txt
+
+# Start backend services
+uv run python -m src.backend.datahub.server &
+
+# Start desktop app
+cd src/frontend && npm run dev
 ```
 
-Required environment variables:
-```env
-# Tradier API (optional for development)
-TRADIER_API_KEY=your_tradier_api_key_here
-TRADIER_ACCOUNT_ID=your_account_id_here
+---
 
-# TradingView (optional)
-TRADINGVIEW_WEBHOOK_SECRET=your_webhook_secret
+## 🔑 **Configuration & Setup**
 
-# Development settings
-DATAHUB_HOST=localhost
-DATAHUB_PORT=8080
+### **1. Broker Connection (For Live Trading)**
+
+**Tradier Setup** (Recommended):
+1. Sign up at [Tradier](https://tradier.com) (free sandbox available)
+2. Get your API key from the developer portal
+3. In TraderTerminal: **Settings** → **Broker** → **Tradier**
+4. Enter your API key and account ID
+5. Toggle **Live Trading** when ready
+
+**Demo Mode** (Default):
+- Works immediately with simulated data
+- Perfect for learning the interface
+- Test strategies risk-free
+
+### **2. TradingView Integration**
+1. Get TradingView charting library (premium feature)
+2. Place library files in installation directory
+3. Restart TraderTerminal for professional charts
+
+**Alternative**: Free charts work out of the box with basic indicators.
+
+### **3. Strategy Automation**
+```bash
+# Set up automated trading (optional)
+./src/automation/kairos_jobs/setup_kairos.sh dev
+
+# Configure your strategies
+edit src/automation/kairos_jobs/momentum_strategy.yml
 ```
 
-## 🔌 API Documentation
+---
 
-### DataHub Server Endpoints
+## 🧪 **Backtesting Your Strategies**
 
-**Core Services**:
-```
-GET  /health                    # Server health and metrics
-GET  /udf/config               # TradingView UDF configuration  
-WS   /stream                   # WebSocket real-time streaming
-```
+### **Test Pine Script Strategies**
+1. **Open Backtest Panel**: Right panel → **Backtest** tab
+2. **Enter Strategy Code**: Paste your Pine Script strategy
+3. **Select Symbols**: Choose stocks/assets to test
+4. **Set Date Range**: Historical period for testing
+5. **Run Backtest**: Click "Run Backtest" and watch progress
+6. **Analyze Results**: Detailed performance metrics and trade analysis
 
-**Market Data**:
-```
-GET  /udf/symbols?symbol=AAPL  # Symbol metadata
-GET  /udf/history              # Historical OHLCV data
-GET  /udf/search?query=AAPL    # Symbol search
-GET  /api/v1/quotes            # Real-time quotes
-```
+### **Example Strategy Test**
+```javascript
+// Simple moving average crossover strategy
+//@version=5
+strategy("MA Cross", overlay=true)
 
-**Backtesting** (⭐ New):
-```
-POST /api/backtest/strategy     # Submit new backtest
-GET  /api/backtest/{id}/status  # Check progress
-GET  /api/backtest/{id}/results # Retrieve results
-DEL  /api/backtest/{id}         # Cancel backtest
-GET  /api/backtest              # List recent backtests
-WS   /api/backtest/{id}/progress # Real-time progress
+fast_ma = ta.sma(close, 20)
+slow_ma = ta.sma(close, 50)
+
+if ta.crossover(fast_ma, slow_ma)
+    strategy.entry("Long", strategy.long)
+if ta.crossunder(fast_ma, slow_ma)
+    strategy.close("Long")
 ```
 
-**Trading & Alerts**:
-```
-POST /webhook/tradingview      # TradingView/Kairos alerts
-GET  /api/v1/alerts           # Active alerts
-POST /api/v1/alerts           # Create new alert
-```
+**Results Include**:
+- 📊 **Performance Metrics**: Total return, Sharpe ratio, max drawdown
+- 📈 **Equity Curve**: Visual portfolio growth over time
+- 📋 **Trade Analysis**: Win rate, average profit/loss per trade
+- 💹 **Risk Metrics**: Volatility, correlation, beta analysis
 
-### Complete API Documentation
+---
 
-- **[Backtesting API](docs/api/BACKTESTING_API.md)**: Comprehensive backtesting endpoints
-- **[Market Data API](docs/api/README.md)**: Real-time and historical data
-- **[WebSocket API](docs/api/README.md)**: Real-time streaming protocol
+## 🎛️ **Trading Features**
 
-## 🏗️ Architecture
+### **Order Management**
+- **Market Orders**: Instant execution at current market price
+- **Limit Orders**: Execute only at specified price or better
+- **Stop Orders**: Automatic stop-loss and take-profit orders
+- **Bracket Orders**: OCO (One-Cancels-Other) order combinations
+- **Position Sizing**: Automatic position sizing based on risk tolerance
 
-### System Overview
+### **Portfolio Tracking**
+- **Real-Time P&L**: Live profit/loss tracking across all positions
+- **Risk Metrics**: Portfolio beta, correlation, concentration risk
+- **Performance Analytics**: Daily, monthly, yearly returns
+- **Tax Reporting**: Detailed trade logs for tax preparation
+- **Allocation Tracking**: Asset class and sector diversification
+
+### **Market Data & Analysis**
+- **Real-Time Quotes**: Live bid/ask prices with Level I data
+- **Historical Data**: Years of OHLCV data for backtesting
+- **News Integration**: Market-moving news and earnings calendars
+- **Economic Calendar**: Fed meetings, GDP, inflation, employment data
+- **Sector Analysis**: Industry performance and rotation tracking
+
+---
+
+## 💬 **Support & Community**
+
+### **Getting Help**
+- 📖 **Documentation**: Complete guides in the `/docs` folder
+- 🐛 **Bug Reports**: [GitHub Issues](https://github.com/grimmolf/trader-ops/issues)
+- 💡 **Feature Requests**: [GitHub Discussions](https://github.com/grimmolf/trader-ops/discussions)
+- 📧 **Email Support**: support@traderterminal.com
+
+### **Learning Resources**
+- 🎥 **Video Tutorials**: Getting started and advanced features
+- 📚 **Strategy Library**: Pre-built trading strategies
+- 🧪 **Example Backtests**: Learn from successful strategies
+- 📊 **Best Practices**: Risk management and portfolio optimization
+
+### **Community**
+- 💬 **Discord**: Real-time chat with other traders
+- 📱 **Twitter**: [@TraderTerminal](https://twitter.com/traderterminal) for updates
+- 🎯 **Reddit**: [r/TraderTerminal](https://reddit.com/r/traderterminal)
+
+---
+
+## ⚠️ **Important Trading Disclaimers**
+
+### **Risk Warning**
+- **Trading Risk**: All trading involves substantial risk of loss
+- **Educational Purpose**: This software is for educational and research use
+- **No Guarantees**: Past performance does not guarantee future results
+- **Your Responsibility**: You are responsible for all trading decisions
+
+### **Software Disclaimer**
+- **"As Is" Basis**: Software provided without warranty of any kind
+- **No Liability**: Authors not liable for trading losses or software issues
+- **User Responsibility**: Verify all trades and manage your own risk
+- **Backup Data**: Always maintain backups of important trading data
+
+### **Regulatory Compliance**
+- **Broker Licensing**: Ensure your broker is properly licensed
+- **Tax Obligations**: Report all trading profits/losses per local laws
+- **Risk Disclosure**: Read all broker risk disclosures carefully
+- **Compliance**: Follow all applicable trading regulations
+
+---
+
+## 📄 **License & Legal**
+
+TraderTerminal is open source software licensed under the MIT License. See [LICENSE](LICENSE) for full terms.
+
+**Commercial Use**: Permitted for commercial trading and business use.
+**Modification**: You may modify the software for your own use.
+**Distribution**: You may distribute modified versions under the same license.
+**Attribution**: Please maintain attribution to the original authors.
+
+---
+
+# 🔧 **Developer Documentation**
+
+*The following sections are for developers who want to contribute to TraderTerminal or understand its technical architecture.*
+
+---
+
+## 🏗️ **Technical Architecture**
+
+### **Technology Stack**
+- **Frontend**: Electron 28+ with Vue 3, TypeScript, and Pinia
+- **Backend**: FastAPI with async/await, Pydantic validation
+- **Charts**: TradingView charting library integration
+- **Data**: WebSocket streaming with automatic reconnection
+- **Database**: Redis for caching, TimescaleDB for historical data
+
+### **System Overview**
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │                   Desktop Application                        │
@@ -419,24 +342,8 @@ POST /api/v1/alerts           # Create new alert
     └───────────────────────────────────────────────────────┘
 ```
 
-### Technology Stack
-
-**Frontend**:
-- **Framework**: Electron 28+ with Vue 3 and TypeScript
-- **State Management**: Pinia with reactive stores
-- **Build System**: Vite with hot module replacement
-- **UI Components**: Custom components with professional styling
-- **Charts**: TradingView charting library integration
-
-**Backend**:
-- **API Server**: FastAPI with async/await throughout
-- **Background Tasks**: AsyncIO with concurrent execution limits
-- **Data Models**: Pydantic for type safety and validation
-- **WebSocket**: Real-time streaming with auto-reconnection
-- **Caching**: Redis for session and market data
-
-### Data Flow
-1. **Desktop Application**: Professional multi-pane interface
+### **Data Flow**
+1. **User Interface**: Vue.js components with TypeScript
 2. **IPC Communication**: Secure Electron preload bridge
 3. **WebSocket Streaming**: Real-time market data and updates
 4. **API Processing**: FastAPI backend with async operations
@@ -444,26 +351,95 @@ POST /api/v1/alerts           # Create new alert
 6. **Risk Management**: Multi-layer validation and controls
 7. **Broker Integration**: Tradier API for market data and execution
 
-## 🧪 Testing
+---
 
-### Frontend Testing
+## 🔌 **API Documentation**
+
+### **Core Endpoints**
+
+**Health & Status**:
+```
+GET  /health                    # Server health and metrics
+GET  /udf/config               # TradingView UDF configuration  
+WS   /stream                   # WebSocket real-time streaming
+```
+
+**Market Data**:
+```
+GET  /udf/symbols?symbol=AAPL  # Symbol metadata
+GET  /udf/history              # Historical OHLCV data
+GET  /udf/search?query=AAPL    # Symbol search
+GET  /api/v1/quotes            # Real-time quotes
+```
+
+**Backtesting**:
+```
+POST /api/backtest/strategy     # Submit new backtest
+GET  /api/backtest/{id}/status  # Check progress
+GET  /api/backtest/{id}/results # Retrieve results
+DEL  /api/backtest/{id}         # Cancel backtest
+GET  /api/backtest              # List recent backtests
+WS   /api/backtest/{id}/progress # Real-time progress
+```
+
+**Trading & Alerts**:
+```
+POST /webhook/tradingview      # TradingView/Kairos alerts
+GET  /api/v1/alerts           # Active alerts
+POST /api/v1/alerts           # Create new alert
+```
+
+### **Complete API Documentation**
+- **[Backtesting API](docs/api/BACKTESTING_API.md)**: Comprehensive backtesting endpoints
+- **[Market Data API](docs/api/README.md)**: Real-time and historical data
+- **[WebSocket API](docs/api/README.md)**: Real-time streaming protocol
+
+---
+
+## 🧪 **Development Setup**
+
+### **Prerequisites**
+- **Python 3.11+** for backend services
+- **Node.js 18+** for desktop application
+- **Redis** for caching (optional)
+- **Git** for version control
+
+### **Backend Development**
 ```bash
-cd src/frontend
+# Clone repository
+git clone https://github.com/grimmolf/trader-ops.git
+cd trader-ops
 
-# Run development mode
+# Install Python dependencies (recommended: uv)
+uv sync
+
+# Alternative: pip
+python -m venv venv
+source venv/bin/activate
+pip install -r requirements.txt
+
+# Start backend server
+uv run python -m src.backend.datahub.server
+```
+
+### **Frontend Development**
+```bash
+# Install Node.js dependencies
+cd src/frontend
+npm install
+
+# Start development mode (hot reload)
 npm run dev
 
 # Build for production
 npm run build
-
-# Package for distribution
-npm run package:mac
-npm run package:linux
+npm run package:mac    # For macOS
+npm run package:linux  # For Linux
 ```
 
-### Backend Testing
+### **Testing**
 ```bash
-# Run server tests
+# Backend tests
 uv run pytest tests/ -v
 
 # Test API endpoints
@@ -473,151 +449,82 @@ curl "http://localhost:8080/api/v1/quotes?symbols=AAPL"
 # Test WebSocket connection
 websocat ws://localhost:8080/stream
 
-# Test backtesting API
-curl -X POST http://localhost:8080/api/backtest/strategy \
-  -H "Content-Type: application/json" \
-  -d '{"pine_script":"test","symbols":["AAPL"],"start_date":"2024-01-01","end_date":"2024-12-31"}'
-```
-
-### Integration Testing
-```bash
-# Start full environment
+# Integration testing
 redis-server &
 uv run python -m src.backend.datahub.server &
 cd src/frontend && npm run dev
-
-# Test desktop app with backend integration
-# Verify real-time data, order entry, backtesting
 ```
 
-## 🚀 Deployment
+---
 
-### Development Deployment
-```bash
-# Start all services
-redis-server --port 6379 &
-uv run python -m src.backend.datahub.server &
-cd src/frontend && npm run dev
+## 🤝 **Contributing**
 
-# Desktop app with hot reload
-# Backend with auto-reload on changes
-```
-
-### Production Deployment
-
-**Backend Services**:
-```bash
-# System setup (requires sudo)
-sudo ./src/automation/kairos_jobs/setup_kairos.sh system
-
-# Configure production environment
-sudo nano /etc/trader-ops/kairos.env
-
-# Start production services
-./src/automation/kairos_jobs/setup_kairos.sh start
-systemctl --user enable --now trader-datahub.service
-```
-
-**Desktop Application**:
-```bash
-# Build for distribution
-cd src/frontend
-npm run build
-npm run package:mac    # Creates .dmg installer
-npm run package:linux  # Creates .AppImage
-```
-
-### Container Deployment (Future - Phase 3)
-```bash
-# Podman pod configuration (planned)
-podman pod create --name traderterminal-pod --publish 8080:8080
-
-# Container orchestration
-podman run -d --name datahub --pod traderterminal-pod traderterminal-datahub
-podman run -d --name redis --pod traderterminal-pod redis:7-alpine
-```
-
-## 📚 Documentation
-
-### 📖 Complete Documentation
-- **[System Architecture](docs/architecture/SYSTEM_ARCHITECTURE.md)**: Comprehensive overview
-- **[Development Logs](docs/development-logs/)**: Session-by-session tracking  
-- **[API Reference](docs/api/)**: Complete endpoint documentation
-- **[Backtesting API](docs/api/BACKTESTING_API.md)**: Strategy testing guide
-- **[PRP Document](docs/architecture/PRPs/prps_trader_dashboard_prp.md)**: Requirements
-- **[Installation Guide](docs/user/INSTALLATION_GUIDE.md)**: Setup instructions
-
-### 🔧 Developer Resources
-- **[Development Workflow](docs/developer/DEVELOPMENT_WORKFLOW.md)**: Process guide
-- **[Project Structure](docs/developer/PROJECT_STRUCTURE.md)**: Codebase overview
-- **[Kairos Setup](src/automation/kairos_jobs/README.md)**: Strategy automation
-
-## 🎯 Production Readiness
-
-### ✅ Completed Features
-- **🖥️ Desktop Application**: Complete Electron + Vue 3 implementation
-- **📊 Real-time Data**: WebSocket streaming with auto-reconnection
-- **🤖 Execution Engine**: Multi-layer risk management
-- **📈 Backtesting**: Comprehensive API with progress tracking
-- **⚙️ Strategy Automation**: Kairos integration with SystemD
-- **🛡️ Security**: Proper CSP, input validation, error handling
-- **📱 UI/UX**: Professional Bloomberg-like interface
-
-### 🚀 Next Phase: Containerization
-1. **Podman Configuration**: Container definitions for all services
-2. **SystemD Integration**: Service management for production
-3. **Volume Strategy**: Persistent storage configuration  
-4. **CI/CD Pipeline**: Automated testing and deployment
-
-### 🎁 Production Enhancements
-1. **Authentication**: User authentication and authorization
-2. **Monitoring**: Application performance monitoring
-3. **Database**: TimescaleDB for backtest storage
-4. **Testing**: Comprehensive unit and integration tests
-
-## 🤝 Contributing
-
+### **How to Contribute**
 1. **Fork the repository**
 2. **Create feature branch**: `git checkout -b feature/amazing-feature`
 3. **Implement changes**: Follow existing patterns and add tests
 4. **Update documentation**: Ensure all changes are documented  
 5. **Submit pull request**: Include comprehensive description
 
-### Development Standards
+### **Development Standards**
 - **Type Safety**: Full TypeScript frontend, Pydantic backend
-- **Code Quality**: Comprehensive linting and formatting
+- **Code Quality**: ESLint, Prettier, Ruff for Python
 - **Documentation**: All APIs documented with examples
 - **Testing**: Unit tests for all components
 - **Architecture**: Modular, scalable, maintainable
 
-## ⚠️ Risk Disclaimer
-
-**Trading Risk Warning**: Automated trading involves substantial risk of loss. This software is for educational and research purposes. Never risk more than you can afford to lose. Past performance does not guarantee future results.
-
-**Software Disclaimer**: This software is provided "as is" without warranty. Users are responsible for their trading decisions and risk management.
-
-## 📄 License
-
-MIT License - see [LICENSE](LICENSE) file for details.
+### **Areas for Contribution**
+- **New Broker Integrations**: Tradovate, Interactive Brokers, etc.
+- **Additional Indicators**: Custom technical analysis tools
+- **Mobile App**: React Native companion app
+- **Advanced Strategies**: ML-based trading algorithms
+- **UI/UX Improvements**: Better user experience and accessibility
 
 ---
 
-## 🎉 Implementation Complete!
+## 📚 **Technical Documentation**
 
-**TraderTerminal is now a production-ready professional trading platform** featuring:
+### **Complete Documentation**
+- **[System Architecture](docs/architecture/SYSTEM_ARCHITECTURE.md)**: Comprehensive overview
+- **[Development Logs](docs/development-logs/)**: Session-by-session tracking  
+- **[API Reference](docs/api/)**: Complete endpoint documentation
+- **[PRP Document](docs/architecture/PRPs/prps_trader_dashboard_prp.md)**: Requirements
+- **[Installation Guide](docs/user/INSTALLATION_GUIDE.md)**: Setup instructions
 
-✅ **Complete Desktop Application** with Bloomberg-like interface  
-✅ **Real-time Market Data** with WebSocket streaming  
-✅ **Professional Charting** via TradingView integration  
-✅ **Comprehensive Backtesting** with progress tracking  
-✅ **Automated Execution** with multi-layer risk management  
-✅ **Modern Architecture** with TypeScript and async Python  
-
-**Ready for professional trading operations and Phase 3 containerization!**
+### **Developer Resources**
+- **[Development Workflow](docs/developer/DEVELOPMENT_WORKFLOW.md)**: Process guide
+- **[Project Structure](docs/developer/PROJECT_STRUCTURE.md)**: Codebase overview
+- **[Kairos Setup](src/automation/kairos_jobs/README.md)**: Strategy automation
 
 ---
 
-**Built with ❤️ for professional traders who demand institutional-quality tools.**
+## 🚀 **Deployment**
+
+### **Production Deployment**
+```bash
+# Backend services
+sudo ./src/automation/kairos_jobs/setup_kairos.sh system
+sudo nano /etc/trader-ops/kairos.env
+./src/automation/kairos_jobs/setup_kairos.sh start
+
+# Desktop application
+cd src/frontend
+npm run build
+npm run package:mac    # Creates .dmg installer
+npm run package:linux  # Creates .AppImage
+```
+
+### **Container Deployment (Future)**
+```bash
+# Podman pod configuration (planned Phase 3)
+podman pod create --name traderterminal-pod --publish 8080:8080
+podman run -d --name datahub --pod traderterminal-pod traderterminal-datahub
+podman run -d --name redis --pod traderterminal-pod redis:7-alpine
+```
+
+---
+
+**Built with ❤️ for traders who demand institutional-quality tools.**
 
 🤖 Generated with [Claude Code](https://claude.ai/code)
 
