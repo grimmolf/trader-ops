@@ -22,7 +22,7 @@ git clone https://github.com/your-org/trader-ops.git
 cd trader-ops
 
 # 2. Install dependencies
-poetry install                # Python dependencies
+uv sync --dev                 # Python dependencies  
 npm install                   # Node.js dependencies
 
 # 3. Set up development logging
@@ -43,7 +43,7 @@ npm run dev
 
 # Run tests before committing
 npm test
-poetry run pytest
+uv run pytest
 
 # Commit with automatic logging
 git add .
@@ -57,7 +57,7 @@ git push origin feature-branch
 ## 🛠️ Development Environment
 
 ### Required Tools
-- **Python 3.11+** with Poetry for dependency management
+- **Python 3.11+** with UV for fast dependency management
 - **Node.js 18+** with npm for frontend tooling
 - **Git** with development hooks enabled
 - **VS Code** (recommended) with recommended extensions

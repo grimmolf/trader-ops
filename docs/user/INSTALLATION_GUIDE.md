@@ -27,7 +27,7 @@ Complete guide for installing and setting up the Trader Ops trading dashboard on
 - **Display**: 1920x1080 or higher resolution
 
 ### Prerequisites
-- **Python 3.11+** with pip
+- **Python 3.11+** with UV (replaces pip/Poetry)
 - **Node.js 18+** with npm
 - **Git** for development setup
 
@@ -64,7 +64,10 @@ cd trader-ops
 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
 
 # Install required tools
-brew install python@3.11 node@18 git poetry
+brew install python@3.11 node@18 git
+
+# Install UV
+curl -LsSf https://astral.sh/uv/install.sh | sh
 ```
 
 #### Windows
@@ -76,7 +79,9 @@ iex ((New-Object System.Net.WebClient).DownloadString('https://community.chocola
 
 # Install required tools
 choco install python nodejs git
-pip install poetry
+
+# Install UV
+powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"
 ```
 
 #### Ubuntu/Debian
@@ -86,7 +91,9 @@ sudo apt update
 
 # Install required tools
 sudo apt install python3.11 python3-pip nodejs npm git curl
-curl -sSL https://install.python-poetry.org | python3 -
+
+# Install UV
+curl -LsSf https://astral.sh/uv/install.sh | sh
 ```
 
 ### Step 2: Clone Repository
@@ -101,14 +108,14 @@ ls -la  # Should see package.json, pyproject.toml, etc.
 
 ### Step 3: Install Project Dependencies
 ```bash
-# Install Python dependencies
-poetry install
+# Install Python dependencies with UV
+uv sync --dev
 
 # Install Node.js dependencies  
 npm install
 
 # Verify installations
-poetry run python --version  # Should show Python 3.11+
+uv run python --version      # Should show Python 3.11+
 npm --version                 # Should show npm 9+
 ```
 

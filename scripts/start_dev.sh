@@ -6,10 +6,17 @@
 echo "🚀 Starting Trader Ops Development Environment..."
 echo ""
 
-# Check if virtual environment exists
-if [ ! -d "venv" ]; then
-    echo "❌ Virtual environment not found. Please run the setup first."
-    echo "   Run: python3 -m venv venv && source venv/bin/activate && pip install -r requirements.txt"
+# Check if UV is installed
+if ! command -v uv &> /dev/null; then
+    echo "❌ UV not found. Please install UV first:"
+    echo "   curl -LsSf https://astral.sh/uv/install.sh | sh"
+    echo "   Or: pip install uv"
+    exit 1
+fi
+
+# Check if Python environment is set up
+if [ ! -f "pyproject.toml" ]; then
+    echo "❌ pyproject.toml not found. Please run from project root."
     exit 1
 fi
 
@@ -19,9 +26,13 @@ if [ ! -d "node_modules" ]; then
     npm install
 fi
 
-echo "🐍 Starting Python FastAPI Data Hub Server..."
-# Start Python backend in background
-source venv/bin/activate && python -m src.backend.server &
+# Install Python dependencies if needed
+echo "🐍 Setting up Python environment with UV..."
+uv sync --dev
+
+echo "⚡ Starting Python FastAPI Data Hub Server..."
+# Start Python backend in background using UV
+uv run python -m src.backend.server &
 PYTHON_PID=$!
 
 # Give the Python server time to start

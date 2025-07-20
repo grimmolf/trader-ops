@@ -97,7 +97,7 @@ Open the Electron app and start trading with real-time market data!
 
 ### Prerequisites
 
-- **Python 3.11+** with Poetry
+- **Python 3.11+** with UV (replaces Poetry)
 - **Node.js 18+** with npm
 - **Git** for version control
 - **Tradier Account** (optional, for live data)
@@ -106,27 +106,43 @@ Open the Electron app and start trading with real-time market data!
 
 ```bash
 # macOS
-brew install python node poetry
+brew install python node
+curl -LsSf https://astral.sh/uv/install.sh | sh
 
 # Ubuntu/Debian
 sudo apt install python3.11 nodejs npm
-curl -sSL https://install.python-poetry.org | python3 -
+curl -LsSf https://astral.sh/uv/install.sh | sh
 
 # Windows
 # Install Python from python.org
 # Install Node.js from nodejs.org
-# Install Poetry from python-poetry.org
+# Install UV: powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"
 ```
 
-### Project Setup
+### Quick Setup (Recommended)
 
 ```bash
 # 1. Clone the repository
 git clone https://github.com/your-org/trader-ops.git
 cd trader-ops
 
-# 2. Install Python dependencies
-poetry install
+# 2. Run automated setup (installs UV, dependencies, and configures development)
+./scripts/setup_uv.sh
+
+# 3. Set up environment configuration
+cp .env.example .env
+# Edit .env with your API keys and configuration
+```
+
+### Manual Setup
+
+```bash
+# 1. Clone the repository
+git clone https://github.com/your-org/trader-ops.git
+cd trader-ops
+
+# 2. Install Python dependencies with UV
+uv sync --dev
 
 # 3. Install Node.js dependencies
 npm install
@@ -194,7 +210,7 @@ npm run dev
 
 # Option 2: Manual startup
 # Terminal 1: Start backend
-poetry run python -m uvicorn src.backend.server:app --reload --port 8000
+uv run python -m uvicorn src.backend.server:app --reload --port 8000
 
 # Terminal 2: Start frontend
 npm run electron:dev
@@ -356,7 +372,7 @@ For complete API documentation, visit `/docs` when running the development serve
 
 ```bash
 # Set up development environment
-poetry shell                    # Activate Python virtual environment
+uv sync --dev                   # Install/update dependencies
 npm run dev                     # Start development servers
 npm run test                    # Run all tests
 npm run lint                    # Check code quality
@@ -413,9 +429,9 @@ python scripts/dev-logging/manage-logs.py stats
 
 ```bash
 # Python
-poetry run ruff check src/          # Linting
-poetry run mypy src/                # Type checking
-poetry run black src/               # Code formatting
+uv run ruff check src/              # Linting
+uv run mypy src/                    # Type checking
+uv run black src/                   # Code formatting
 
 # JavaScript/TypeScript
 npm run lint                        # ESLint
@@ -451,8 +467,8 @@ git push origin feature/new-feature
 npm test
 
 # Python backend tests
-poetry run pytest tests/unit/ -v
-poetry run pytest tests/integration/ -v
+uv run pytest tests/unit/ -v
+uv run pytest tests/integration/ -v
 
 # Frontend tests
 npm run test:unit
@@ -460,7 +476,7 @@ npm run test:e2e
 
 # Coverage reports
 npm run coverage
-poetry run pytest --cov=src tests/
+uv run pytest --cov=src tests/
 ```
 
 ### Test Structure
@@ -509,7 +525,7 @@ def test_quote_parsing(mock_tradier_response):
 
 ```bash
 # Build backend
-poetry build
+uv build
 
 # Build frontend
 npm run build
