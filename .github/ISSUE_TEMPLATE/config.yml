@@ -1,0 +1,21 @@
+blank_issues_enabled: false
+contact_links:
+  - name: 🚨 Critical Security Vulnerability
+    url: mailto:security@trader-ops.example.com
+    about: For critical security vulnerabilities that could be exploited, please email us directly instead of creating a public issue.
+    
+  - name: 📚 Documentation
+    url: https://github.com/grimmolf/trader-ops/wiki
+    about: Check the documentation for setup guides, API references, and trading platform tutorials.
+    
+  - name: 💬 Community Discussions
+    url: https://github.com/grimmolf/trader-ops/discussions
+    about: Join community discussions about trading strategies, platform usage, and feature ideas.
+    
+  - name: 📊 TradingView Integration Help
+    url: https://github.com/grimmolf/trader-ops/discussions/categories/tradingview-integration
+    about: Specific help with TradingView charting integration and custom indicators.
+    
+  - name: 🔌 API Documentation
+    url: https://github.com/grimmolf/trader-ops/wiki/api-reference
+    about: Complete API documentation for integrating with trading platforms and market data sources.

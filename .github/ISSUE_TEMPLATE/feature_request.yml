@@ -1,0 +1,164 @@
+name: 🚀 Feature Request
+description: Suggest a new feature or enhancement for the trading platform
+title: "[Feature]: "
+labels: ["feature-request", "triage"]
+assignees:
+  - grimmolf
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## 🚀 Feature Request
+        
+        Thanks for suggesting a new feature! Please provide as much detail as possible to help us understand your use case and design the best solution.
+
+  - type: dropdown
+    id: feature_category
+    attributes:
+      label: Feature Category
+      description: Which area would this feature impact?
+      options:
+        - Trading Interface & UX
+        - Market Data & Analytics
+        - Real-time Data Processing
+        - API Integrations (Tradier/Market Data)
+        - TradingView Integration
+        - Performance & Optimization
+        - Security & Authentication
+        - Alerts & Notifications
+        - Portfolio Management
+        - Reporting & Export
+        - Mobile/Responsive Features
+        - Developer Tools
+        - Other
+    validations:
+      required: true
+
+  - type: dropdown
+    id: priority
+    attributes:
+      label: Priority Level
+      description: How important is this feature for your trading workflow?
+      options:
+        - "🔥 Critical - Essential for trading operations"
+        - "🎯 High - Significantly improves workflow"
+        - "📈 Medium - Nice to have enhancement"
+        - "💡 Low - Future improvement idea"
+    validations:
+      required: true
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem Statement
+      description: What problem does this feature solve? What's the current pain point?
+      placeholder: "Describe the problem or limitation you're experiencing..."
+    validations:
+      required: true
+
+  - type: textarea
+    id: solution
+    attributes:
+      label: Proposed Solution
+      description: Describe your ideal solution to this problem
+      placeholder: "Describe what you'd like to see implemented..."
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternative Solutions
+      description: Are there any alternative approaches or workarounds you've considered?
+      placeholder: "Describe any alternative solutions or workarounds..."
+    validations:
+      required: false
+
+  - type: dropdown
+    id: user_type
+    attributes:
+      label: User Type
+      description: What type of trader/user would benefit from this feature?
+      options:
+        - "Day Trader - High frequency, short-term positions"
+        - "Swing Trader - Medium-term position holding"
+        - "Long-term Investor - Buy and hold strategy"
+        - "Options Trader - Derivatives focus"
+        - "Algorithmic Trader - Automated strategies"
+        - "Portfolio Manager - Multiple account management"
+        - "All User Types"
+        - "Other"
+    validations:
+      required: true
+
+  - type: input
+    id: market_impact
+    attributes:
+      label: Market Context
+      description: Which markets or trading sessions would this impact?
+      placeholder: "e.g., US Stocks, Options, Pre-market, After-hours, etc."
+    validations:
+      required: false
+
+  - type: textarea
+    id: use_case
+    attributes:
+      label: Detailed Use Case
+      description: Walk us through a specific scenario where this feature would be used
+      placeholder: |
+        Example scenario:
+        1. I'm monitoring XYZ stock
+        2. I want to set a conditional alert based on...
+        3. When triggered, I need to...
+        4. This would help me...
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: complexity
+    attributes:
+      label: Implementation Considerations
+      description: Check any aspects that might be relevant to this feature
+      options:
+        - label: "🔄 Real-time data processing required"
+        - label: "📊 Complex calculations or analytics"
+        - label: "🔌 Third-party API integration needed"
+        - label: "📱 Mobile-friendly design important"
+        - label: "⚡ High-performance requirements"
+        - label: "🔒 Security/privacy considerations"
+        - label: "💾 Data storage requirements"
+        - label: "🎨 UI/UX design work needed"
+
+  - type: textarea
+    id: mockup
+    attributes:
+      label: Mockups or Examples
+      description: Any wireframes, screenshots, or examples that help illustrate your idea?
+      placeholder: "Drag and drop images here, or describe the UI/UX you envision..."
+    validations:
+      required: false
+
+  - type: input
+    id: references
+    attributes:
+      label: References
+      description: Any similar features in other platforms or relevant resources?
+      placeholder: "e.g., TradingView alerts, E*TRADE interface, specific articles..."
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: research
+    attributes:
+      label: Research Checklist
+      description: Please confirm the following
+      options:
+        - label: "I have searched for existing feature requests"
+          required: true
+        - label: "I have checked if this might already be in development"
+          required: true
+        - label: "I have provided sufficient detail for implementation planning"
+          required: true
+        - label: "This feature aligns with trading platform best practices"
+          required: false

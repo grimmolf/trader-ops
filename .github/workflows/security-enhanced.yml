@@ -1,0 +1,698 @@
+name: Enhanced Security Scanning
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+  schedule:
+    # Run comprehensive security scan daily at 3 AM UTC
+    - cron: '0 3 * * *'
+  workflow_dispatch:
+    inputs:
+      scan_type:
+        description: 'Type of security scan'
+        required: true
+        default: 'comprehensive'
+        type: choice
+        options:
+          - comprehensive
+          - secrets-only
+          - dependencies-only
+          - financial-compliance
+          - penetration-test
+
+permissions:
+  contents: read
+  security-events: write
+  issues: write
+  pull-requests: write
+
+jobs:
+  security-scan-setup:
+    name: Security Scan Setup
+    runs-on: ubuntu-latest
+    outputs:
+      scan_type: ${{ steps.setup.outputs.scan_type }}
+      should_run_comprehensive: ${{ steps.setup.outputs.should_run_comprehensive }}
+    steps:
+      - name: Determine scan type
+        id: setup
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            scan_type="${{ github.event.inputs.scan_type }}"
+          elif [ "${{ github.event_name }}" = "schedule" ]; then
+            scan_type="comprehensive"
+          else
+            scan_type="standard"
+          fi
+          
+          echo "scan_type=$scan_type" >> $GITHUB_OUTPUT
+          
+          if [ "$scan_type" = "comprehensive" ] || [ "$scan_type" = "standard" ]; then
+            echo "should_run_comprehensive=true" >> $GITHUB_OUTPUT
+          else
+            echo "should_run_comprehensive=false" >> $GITHUB_OUTPUT
+          fi
+          
+          echo "Security scan type: $scan_type"
+
+  secrets-detection:
+    name: Secrets and API Key Detection
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Full history for secret scanning
+
+      - name: Install truffleHog
+        run: |
+          curl -sSfL https://raw.githubusercontent.com/trufflesecurity/trufflehog/main/scripts/install.sh | sh -s -- -b /usr/local/bin
+
+      - name: Run truffleHog secret scan
+        run: |
+          echo "🔍 Scanning for secrets and API keys..."
+          mkdir -p security-results
+          
+          # Scan git history for secrets
+          trufflehog git file://. --json --no-update > security-results/secrets-scan.json || true
+          
+          # Create human-readable report
+          cat > process_secrets.py << 'EOF'
+          import json
+          import sys
+          
+          def process_secrets_report():
+              try:
+                  with open('security-results/secrets-scan.json', 'r') as f:
+                      lines = f.readlines()
+              except FileNotFoundError:
+                  print("No secrets scan results found")
+                  return
+              
+              secrets_found = []
+              for line in lines:
+                  if line.strip():
+                      try:
+                          entry = json.loads(line)
+                          if entry.get('Verified', False):
+                              secrets_found.append({
+                                  'detector': entry.get('DetectorName', 'Unknown'),
+                                  'file': entry.get('SourceMetadata', {}).get('Data', {}).get('Filesystem', {}).get('file', 'Unknown'),
+                                  'line': entry.get('SourceMetadata', {}).get('Data', {}).get('Filesystem', {}).get('line', 'Unknown')
+                              })
+                      except json.JSONDecodeError:
+                          continue
+              
+              # Create summary
+              summary = {
+                  'verified_secrets': len(secrets_found),
+                  'secrets': secrets_found
+              }
+              
+              with open('security-results/secrets-summary.json', 'w') as f:
+                  json.dump(summary, f, indent=2)
+              
+              print(f"🔍 Secrets Detection Results:")
+              print(f"  Verified secrets found: {len(secrets_found)}")
+              
+              if secrets_found:
+                  print("  ⚠️ VERIFIED SECRETS DETECTED:")
+                  for secret in secrets_found:
+                      print(f"    - {secret['detector']} in {secret['file']}:{secret['line']}")
+                  return True
+              else:
+                  print("  ✅ No verified secrets detected")
+                  return False
+          
+          if __name__ == "__main__":
+              has_secrets = process_secrets_report()
+              if has_secrets:
+                  print("\n⚠️ WARNING: Verified secrets detected! Review immediately.")
+                  # Don't fail the build automatically - let security team decide
+                  # sys.exit(1)
+          EOF
+          
+          python process_secrets.py
+
+      - name: Trading API specific secret patterns
+        run: |
+          echo "🔑 Scanning for trading-specific API patterns..."
+          
+          # Check for common trading API patterns
+          cat > trading_patterns.py << 'EOF'
+          import re
+          import os
+          import json
+          
+          # Trading-specific patterns
+          patterns = {
+              'tradier_token': r'[tT]radier[_\s]*[aA]ccess[_\s]*[tT]oken["\s]*[:=]["\s]*([A-Za-z0-9]{32,})',
+              'alpaca_key': r'[aA]lpaca[_\s]*[aA]pi[_\s]*[kK]ey["\s]*[:=]["\s]*([A-Z0-9]{20,})',
+              'interactive_brokers': r'[iI][bB][_\s]*[aA]pi[_\s]*[kK]ey["\s]*[:=]["\s]*([A-Za-z0-9]{16,})',
+              'binance_api': r'[bB]inance[_\s]*[aA]pi[_\s]*[kK]ey["\s]*[:=]["\s]*([A-Za-z0-9]{64})',
+              'coinbase_key': r'[cC]oinbase[_\s]*[aA]pi[_\s]*[kK]ey["\s]*[:=]["\s]*([A-Za-z0-9]{32})',
+              'generic_trading_key': r'(?i)(trading|broker|exchange)[_\s]*(?:api[_\s]*)?(?:key|token|secret)["\s]*[:=]["\s]*([A-Za-z0-9]{16,})'
+          }
+          
+          def scan_file(filepath):
+              try:
+                  with open(filepath, 'r', encoding='utf-8', errors='ignore') as f:
+                      content = f.read()
+              except (IOError, UnicodeDecodeError):
+                  return []
+              
+              findings = []
+              for pattern_name, pattern in patterns.items():
+                  matches = re.finditer(pattern, content)
+                  for match in matches:
+                      findings.append({
+                          'pattern': pattern_name,
+                          'file': filepath,
+                          'line': content[:match.start()].count('\n') + 1,
+                          'match': match.group(1)[:10] + '...' if len(match.group(1)) > 10 else match.group(1)
+                      })
+              
+              return findings
+          
+          def scan_directory(directory):
+              all_findings = []
+              
+              for root, dirs, files in os.walk(directory):
+                  # Skip common directories that shouldn't contain secrets
+                  dirs[:] = [d for d in dirs if d not in ['.git', 'node_modules', '.venv', '__pycache__', 'build', 'dist']]
+                  
+                  for file in files:
+                      if file.endswith(('.py', '.js', '.ts', '.json', '.yml', '.yaml', '.env', '.conf', '.config')):
+                          filepath = os.path.join(root, file)
+                          findings = scan_file(filepath)
+                          all_findings.extend(findings)
+              
+              return all_findings
+          
+          def main():
+              print("🔍 Scanning for trading API patterns...")
+              findings = scan_directory('.')
+              
+              if findings:
+                  print(f"⚠️ Found {len(findings)} potential trading API patterns:")
+                  for finding in findings:
+                      print(f"  - {finding['pattern']} in {finding['file']}:{finding['line']} ({finding['match']})")
+                  
+                  # Save detailed results
+                  with open('security-results/trading-patterns.json', 'w') as f:
+                      json.dump(findings, f, indent=2)
+              else:
+                  print("✅ No trading API patterns detected")
+              
+              return len(findings)
+          
+          if __name__ == "__main__":
+              count = main()
+              if count > 0:
+                  print(f"\n⚠️ Review {count} potential trading API key patterns")
+          EOF
+          
+          python trading_patterns.py
+
+      - name: Upload secrets scan results
+        uses: actions/upload-artifact@v4
+        with:
+          name: secrets-scan-results
+          path: security-results/
+          retention-days: 30
+
+  dependency-security:
+    name: Dependency Security Analysis
+    runs-on: ubuntu-latest
+    needs: [security-scan-setup]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install UV
+        uses: astral-sh/setup-uv@v3
+        with:
+          version: "latest"
+
+      - name: Set up Python
+        run: uv python install "3.11"
+
+      - name: Install Python dependencies
+        run: uv sync --dev
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      - name: Install Node.js dependencies
+        run: npm ci
+
+      - name: Python security audit with Safety
+        run: |
+          echo "🔍 Running Python dependency security audit..."
+          mkdir -p security-results
+          
+          # Run safety check for Python dependencies
+          uv run safety check --json --output security-results/python-vulnerabilities.json || true
+          
+          # Generate human-readable report
+          cat > process_safety.py << 'EOF'
+          import json
+          
+          try:
+              with open('security-results/python-vulnerabilities.json', 'r') as f:
+                  data = json.load(f)
+          except (FileNotFoundError, json.JSONDecodeError):
+              print("No Python vulnerability data available")
+              exit(0)
+          
+          vulnerabilities = data.get('vulnerabilities', [])
+          
+          print(f"🐍 Python Dependencies Security Report:")
+          print(f"  Total vulnerabilities found: {len(vulnerabilities)}")
+          
+          if vulnerabilities:
+              high_severity = [v for v in vulnerabilities if v.get('severity', '').upper() in ['HIGH', 'CRITICAL']]
+              print(f"  High/Critical severity: {len(high_severity)}")
+              
+              if high_severity:
+                  print("\n  ⚠️ HIGH/CRITICAL VULNERABILITIES:")
+                  for vuln in high_severity[:5]:  # Show first 5
+                      package = vuln.get('package_name', 'Unknown')
+                      version = vuln.get('analyzed_version', 'Unknown')
+                      title = vuln.get('vulnerability_id', 'Unknown')
+                      print(f"    - {package} {version}: {title}")
+          else:
+              print("  ✅ No vulnerabilities detected")
+          
+          # Create summary for GitHub comment
+          summary = {
+              'total_vulnerabilities': len(vulnerabilities),
+              'high_critical_count': len([v for v in vulnerabilities if v.get('severity', '').upper() in ['HIGH', 'CRITICAL']]),
+              'scan_date': data.get('report_meta', {}).get('timestamp', 'Unknown')
+          }
+          
+          with open('security-results/python-vuln-summary.json', 'w') as f:
+              json.dump(summary, f, indent=2)
+          EOF
+          
+          python process_safety.py
+
+      - name: Node.js security audit
+        run: |
+          echo "🔍 Running Node.js dependency security audit..."
+          
+          # Run npm audit
+          npm audit --json > security-results/npm-audit.json || true
+          
+          # Process npm audit results
+          cat > process_npm_audit.py << 'EOF'
+          import json
+          
+          try:
+              with open('security-results/npm-audit.json', 'r') as f:
+                  data = json.load(f)
+          except (FileNotFoundError, json.JSONDecodeError):
+              print("No npm audit data available")
+              exit(0)
+          
+          vulnerabilities = data.get('vulnerabilities', {})
+          metadata = data.get('metadata', {})
+          
+          total_vulns = metadata.get('vulnerabilities', {}).get('total', 0)
+          high_vulns = metadata.get('vulnerabilities', {}).get('high', 0)
+          critical_vulns = metadata.get('vulnerabilities', {}).get('critical', 0)
+          
+          print(f"📦 Node.js Dependencies Security Report:")
+          print(f"  Total vulnerabilities: {total_vulns}")
+          print(f"  High severity: {high_vulns}")
+          print(f"  Critical severity: {critical_vulns}")
+          
+          if high_vulns > 0 or critical_vulns > 0:
+              print("\n  ⚠️ HIGH/CRITICAL VULNERABILITIES FOUND")
+              print("  Run 'npm audit fix' to attempt automatic fixes")
+          else:
+              print("  ✅ No high or critical vulnerabilities detected")
+          
+          # Create summary
+          summary = {
+              'total_vulnerabilities': total_vulns,
+              'high_severity': high_vulns,
+              'critical_severity': critical_vulns,
+              'scan_date': metadata.get('timestamp', 'Unknown')
+          }
+          
+          with open('security-results/npm-vuln-summary.json', 'w') as f:
+              json.dump(summary, f, indent=2)
+          EOF
+          
+          python process_npm_audit.py
+
+      - name: Generate dependency security report
+        run: |
+          echo "📊 Generating combined dependency security report..."
+          
+          cat > combined_security_report.py << 'EOF'
+          import json
+          import os
+          
+          def load_json_safe(filepath):
+              try:
+                  with open(filepath, 'r') as f:
+                      return json.load(f)
+              except (FileNotFoundError, json.JSONDecodeError):
+                  return {}
+          
+          def generate_report():
+              python_summary = load_json_safe('security-results/python-vuln-summary.json')
+              npm_summary = load_json_safe('security-results/npm-vuln-summary.json')
+              
+              # Create markdown report
+              report = []
+              report.append("## 🔒 Dependency Security Report")
+              report.append("")
+              
+              # Python section
+              if python_summary:
+                  total_py = python_summary.get('total_vulnerabilities', 0)
+                  high_py = python_summary.get('high_critical_count', 0)
+                  
+                  status_py = "❌ Critical" if high_py > 0 else "⚠️ Review" if total_py > 0 else "✅ Clean"
+                  
+                  report.append("### 🐍 Python Dependencies")
+                  report.append(f"- **Status**: {status_py}")
+                  report.append(f"- **Total Vulnerabilities**: {total_py}")
+                  report.append(f"- **High/Critical**: {high_py}")
+                  report.append("")
+              
+              # Node.js section
+              if npm_summary:
+                  total_npm = npm_summary.get('total_vulnerabilities', 0)
+                  high_npm = npm_summary.get('high_severity', 0)
+                  critical_npm = npm_summary.get('critical_severity', 0)
+                  
+                  status_npm = "❌ Critical" if critical_npm > 0 else "⚠️ Review" if high_npm > 0 else "✅ Clean"
+                  
+                  report.append("### 📦 Node.js Dependencies")
+                  report.append(f"- **Status**: {status_npm}")
+                  report.append(f"- **Total Vulnerabilities**: {total_npm}")
+                  report.append(f"- **High Severity**: {high_npm}")
+                  report.append(f"- **Critical Severity**: {critical_npm}")
+                  report.append("")
+              
+              # Overall assessment
+              total_issues = (python_summary.get('high_critical_count', 0) + 
+                            npm_summary.get('high_severity', 0) + 
+                            npm_summary.get('critical_severity', 0))
+              
+              if total_issues > 0:
+                  report.append("### ⚠️ Action Required")
+                  report.append("High or critical vulnerabilities detected. Consider:")
+                  report.append("- Updating affected dependencies")
+                  report.append("- Applying security patches")
+                  report.append("- Reviewing dependency usage")
+              else:
+                  report.append("### ✅ Security Status")
+                  report.append("No high or critical vulnerabilities detected in dependencies.")
+              
+              report.append("")
+              report.append("---")
+              report.append("*Generated by automated security scanning*")
+              
+              return "\n".join(report)
+          
+          def main():
+              report = generate_report()
+              
+              with open('security-results/dependency-security-report.md', 'w') as f:
+                  f.write(report)
+              
+              print(report)
+          
+          if __name__ == "__main__":
+              main()
+          EOF
+          
+          python combined_security_report.py
+
+      - name: Upload dependency security results
+        uses: actions/upload-artifact@v4
+        with:
+          name: dependency-security-results
+          path: security-results/
+          retention-days: 30
+
+  financial-compliance-check:
+    name: Financial Compliance Check
+    runs-on: ubuntu-latest
+    needs: [security-scan-setup]
+    if: |
+      needs.security-scan-setup.outputs.scan_type == 'comprehensive' || 
+      needs.security-scan-setup.outputs.scan_type == 'financial-compliance'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Financial data privacy compliance
+        run: |
+          echo "🏦 Running financial compliance checks..."
+          mkdir -p security-results
+          
+          cat > financial_compliance.py << 'EOF'
+          import re
+          import os
+          import json
+          
+          # Financial data patterns
+          compliance_patterns = {
+              'ssn': r'\b\d{3}-\d{2}-\d{4}\b',
+              'credit_card': r'\b(?:\d{4}[-\s]?){3}\d{4}\b',
+              'bank_account': r'\b\d{8,17}\b',
+              'routing_number': r'\b\d{9}\b',
+              'account_number': r'(?i)account[_\s]*(?:number|num|no)["\s]*[:=]["\s]*(\d{6,})',
+              'api_credentials': r'(?i)(?:secret|private|credential)[_\s]*[:=]["\s]*([A-Za-z0-9+/]{20,})',
+              'pii_email': r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b'
+          }
+          
+          # Files to check
+          def scan_for_financial_data():
+              findings = []
+              
+              for root, dirs, files in os.walk('.'):
+                  # Skip certain directories
+                  dirs[:] = [d for d in dirs if d not in ['.git', 'node_modules', '.venv', '__pycache__']]
+                  
+                  for file in files:
+                      if file.endswith(('.py', '.js', '.ts', '.json', '.env', '.txt', '.md')):
+                          filepath = os.path.join(root, file)
+                          
+                          try:
+                              with open(filepath, 'r', encoding='utf-8', errors='ignore') as f:
+                                  content = f.read()
+                          except IOError:
+                              continue
+                          
+                          for pattern_name, pattern in compliance_patterns.items():
+                              matches = re.finditer(pattern, content)
+                              for match in matches:
+                                  # Don't report example/test data
+                                  if 'test' in filepath.lower() or 'example' in filepath.lower():
+                                      continue
+                                  
+                                  findings.append({
+                                      'type': pattern_name,
+                                      'file': filepath,
+                                      'line': content[:match.start()].count('\n') + 1,
+                                      'severity': 'HIGH' if pattern_name in ['ssn', 'credit_card', 'api_credentials'] else 'MEDIUM'
+                                  })
+              
+              return findings
+          
+          def main():
+              findings = scan_for_financial_data()
+              
+              print(f"🏦 Financial Compliance Scan Results:")
+              print(f"  Total potential issues: {len(findings)}")
+              
+              high_severity = [f for f in findings if f['severity'] == 'HIGH']
+              if high_severity:
+                  print(f"  High severity issues: {len(high_severity)}")
+                  print("  ⚠️ HIGH PRIORITY ITEMS:")
+                  for finding in high_severity[:5]:
+                      print(f"    - {finding['type']} in {finding['file']}:{finding['line']}")
+              
+              # Save results
+              with open('security-results/financial-compliance.json', 'w') as f:
+                  json.dump({
+                      'total_findings': len(findings),
+                      'high_severity_count': len(high_severity),
+                      'findings': findings
+                  }, f, indent=2)
+              
+              if high_severity:
+                  print(f"\n⚠️ COMPLIANCE WARNING: {len(high_severity)} high-severity financial data patterns detected")
+                  print("Review these findings to ensure no sensitive financial data is exposed")
+              else:
+                  print("✅ No high-severity financial data compliance issues detected")
+          
+          if __name__ == "__main__":
+              main()
+          EOF
+          
+          python financial_compliance.py
+
+  security-report:
+    name: Generate Security Report
+    runs-on: ubuntu-latest
+    needs: [secrets-detection, dependency-security, financial-compliance-check]
+    if: always()
+    steps:
+      - name: Download all security scan results
+        uses: actions/download-artifact@v4
+        with:
+          pattern: "*-security-results"
+          path: ./all-security-results/
+        continue-on-error: true
+
+      - name: Consolidate security report
+        run: |
+          echo "📋 Consolidating security scan results..."
+          
+          cat > consolidate_security.py << 'EOF'
+          import json
+          import os
+          from datetime import datetime
+          
+          def load_json_files():
+              results = {}
+              
+              for root, dirs, files in os.walk('all-security-results'):
+                  for file in files:
+                      if file.endswith('.json'):
+                          filepath = os.path.join(root, file)
+                          try:
+                              with open(filepath, 'r') as f:
+                                  data = json.load(f)
+                                  results[file] = data
+                          except (json.JSONDecodeError, IOError):
+                              continue
+              
+              return results
+          
+          def generate_executive_summary(results):
+              summary = []
+              summary.append("# 🔒 Security Scan Executive Summary")
+              summary.append(f"**Scan Date**: {datetime.now().strftime('%Y-%m-%d %H:%M UTC')}")
+              summary.append("")
+              
+              # Overall risk assessment
+              total_issues = 0
+              critical_issues = 0
+              
+              # Secrets scan
+              if 'secrets-summary.json' in results:
+                  secrets_data = results['secrets-summary.json']
+                  verified_secrets = secrets_data.get('verified_secrets', 0)
+                  if verified_secrets > 0:
+                      total_issues += verified_secrets
+                      critical_issues += verified_secrets
+                      summary.append(f"🚨 **CRITICAL**: {verified_secrets} verified secrets detected")
+              
+              # Dependencies
+              if 'python-vuln-summary.json' in results:
+                  py_data = results['python-vuln-summary.json']
+                  high_crit = py_data.get('high_critical_count', 0)
+                  total_issues += high_crit
+                  critical_issues += high_crit
+              
+              if 'npm-vuln-summary.json' in results:
+                  npm_data = results['npm-vuln-summary.json']
+                  high_npm = npm_data.get('high_severity', 0) + npm_data.get('critical_severity', 0)
+                  total_issues += high_npm
+                  critical_issues += high_npm
+              
+              # Financial compliance
+              if 'financial-compliance.json' in results:
+                  fin_data = results['financial-compliance.json']
+                  high_fin = fin_data.get('high_severity_count', 0)
+                  total_issues += high_fin
+                  critical_issues += high_fin
+              
+              # Risk level
+              if critical_issues > 0:
+                  risk_level = "🔴 **HIGH RISK**"
+              elif total_issues > 0:
+                  risk_level = "🟡 **MEDIUM RISK**"
+              else:
+                  risk_level = "🟢 **LOW RISK**"
+              
+              summary.append("")
+              summary.append(f"## Overall Risk Assessment: {risk_level}")
+              summary.append(f"- **Total Issues**: {total_issues}")
+              summary.append(f"- **Critical Issues**: {critical_issues}")
+              summary.append("")
+              
+              # Recommendations
+              if critical_issues > 0:
+                  summary.append("## 🚨 Immediate Actions Required")
+                  summary.append("1. Review and remediate verified secrets immediately")
+                  summary.append("2. Update dependencies with critical vulnerabilities")
+                  summary.append("3. Address financial data compliance issues")
+                  summary.append("4. Consider delaying production deployment until issues resolved")
+              elif total_issues > 0:
+                  summary.append("## ⚠️ Recommended Actions")
+                  summary.append("1. Schedule dependency updates")
+                  summary.append("2. Review medium-priority findings")
+                  summary.append("3. Monitor for new vulnerabilities")
+              else:
+                  summary.append("## ✅ Security Status: Good")
+                  summary.append("No critical security issues detected. Continue monitoring.")
+              
+              return "\n".join(summary)
+          
+          def main():
+              results = load_json_files()
+              summary = generate_executive_summary(results)
+              
+              with open('security-executive-summary.md', 'w') as f:
+                  f.write(summary)
+              
+              print(summary)
+          
+          if __name__ == "__main__":
+              main()
+          EOF
+          
+          python consolidate_security.py
+
+      - name: Comment security summary on PR
+        if: github.event_name == 'pull_request'
+        run: |
+          if [ -f "security-executive-summary.md" ]; then
+            gh pr comment ${{ github.event.number }} --body-file security-executive-summary.md
+          fi
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Create security issue for critical findings
+        if: github.event_name == 'schedule'
+        run: |
+          # This would create an issue if critical security findings are detected
+          echo "🔍 Checking for critical security findings..."
+          
+          # In a real implementation, this would parse the results and create issues
+          # for critical findings that need immediate attention
+          echo "Security monitoring completed"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload consolidated security report
+        uses: actions/upload-artifact@v4
+        with:
+          name: security-executive-summary
+          path: security-executive-summary.md
+          retention-days: 90

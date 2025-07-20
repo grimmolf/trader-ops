@@ -1,0 +1,124 @@
+{
+  "name": "Trader Ops Development",
+  "build": {
+    "dockerfile": "Dockerfile",
+    "context": "."
+  },
+  
+  // Configure tool-specific properties
+  "customizations": {
+    "vscode": {
+      "settings": {
+        "python.defaultInterpreterPath": "/usr/local/bin/python",
+        "python.formatting.provider": "black",
+        "python.linting.enabled": true,
+        "python.linting.ruffEnabled": true,
+        "python.linting.mypyEnabled": true,
+        "editor.formatOnSave": true,
+        "editor.codeActionsOnSave": {
+          "source.organizeImports": true
+        },
+        "typescript.preferences.quoteStyle": "single",
+        "javascript.preferences.quoteStyle": "single",
+        "npm.packageManager": "npm",
+        "terminal.integrated.defaultProfile.linux": "bash"
+      },
+      "extensions": [
+        "ms-python.python",
+        "ms-python.ruff",
+        "ms-python.mypy-type-checker",
+        "ms-python.black-formatter",
+        "ms-vscode.vscode-typescript-next",
+        "vue.volar",
+        "bradlc.vscode-tailwindcss",
+        "ms-playwright.playwright",
+        "GitHub.copilot",
+        "GitHub.copilot-chat",
+        "ms-vscode.vscode-json",
+        "redhat.vscode-yaml",
+        "ms-vscode.live-server",
+        "eamodio.gitlens"
+      ]
+    }
+  },
+
+  // Use 'forwardPorts' to make a list of ports inside the container available locally
+  "forwardPorts": [
+    8000,  // FastAPI backend
+    5173,  // Vite dev server
+    3000,  // Alternative frontend port
+    8080   // Alternative backend port
+  ],
+
+  "portsAttributes": {
+    "8000": {
+      "label": "FastAPI Backend",
+      "onAutoForward": "notify"
+    },
+    "5173": {
+      "label": "Frontend Dev Server", 
+      "onAutoForward": "openBrowser"
+    }
+  },
+
+  // Set environment variables
+  "containerEnv": {
+    "PYTHON_ENV": "development",
+    "NODE_ENV": "development",
+    "LOG_LEVEL": "INFO",
+    "DEV_LOGGING_ENABLED": "true",
+    "DEV_LOGGING_MODE": "post-commit",
+    "CORS_ORIGINS": "[\"http://localhost:5173\", \"http://localhost:3000\"]"
+  },
+
+  // Configure a command to run when the container is created
+  "postCreateCommand": "bash .devcontainer/setup.sh",
+
+  // Configure a command to run when the container starts
+  "postStartCommand": "echo 'Welcome to Trader Ops Development Environment! 🚀'",
+
+  // Comment out to connect as root instead. More info: https://aka.ms/vscode-remote/containers/non-root
+  "remoteUser": "vscode",
+
+  // Configure development features
+  "features": {
+    "ghcr.io/devcontainers/features/common-utils:2": {
+      "installZsh": true,
+      "installOhMyZsh": true,
+      "upgradePackages": true,
+      "username": "vscode",
+      "uid": "1000",
+      "gid": "1000"
+    },
+    "ghcr.io/devcontainers/features/git:1": {
+      "version": "latest",
+      "ppa": true
+    },
+    "ghcr.io/devcontainers/features/node:1": {
+      "version": "18",
+      "nodeGypDependencies": true,
+      "installYarnUsingApt": false
+    },
+    "ghcr.io/devcontainers/features/github-cli:1": {
+      "version": "latest"
+    }
+  },
+
+  // Mount the local workspace
+  "mounts": [
+    "source=${localWorkspaceFolder},target=/workspace,type=bind,consistency=cached"
+  ],
+
+  // Set the default shell
+  "containerUser": "vscode",
+  "updateContentCommand": "npm install && uv sync --dev",
+
+  // Lifecycle scripts
+  "initializeCommand": "echo 'Initializing Trader Ops development environment...'",
+  "onCreateCommand": "echo 'Development container created successfully!'",
+
+  // Configure Git in container
+  "postAttachCommand": {
+    "git-config": "git config --global --add safe.directory /workspace"
+  }
+}

@@ -1,0 +1,210 @@
+name: 🔒 Security Issue
+description: Report a security vulnerability or concern (CONFIDENTIAL)
+title: "[Security]: "
+labels: ["security", "triage", "confidential"]
+assignees:
+  - grimmolf
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## 🔒 Security Issue Report
+        
+        **⚠️ IMPORTANT**: If this is a critical vulnerability that could be exploited, please email security@trader-ops.example.com instead of filing a public issue.
+        
+        For non-critical security improvements and general security concerns, please use this template.
+
+  - type: dropdown
+    id: security_type
+    attributes:
+      label: Security Issue Type
+      description: What type of security issue is this?
+      options:
+        - Authentication/Authorization
+        - Data Privacy/Encryption
+        - API Security
+        - Session Management
+        - Input Validation
+        - Access Control
+        - Credential Management
+        - Network Security
+        - Financial Data Protection
+        - Trading API Security
+        - Third-party Integration Security
+        - Configuration Security
+        - Dependency Vulnerability
+        - General Security Improvement
+        - Other
+    validations:
+      required: true
+
+  - type: dropdown
+    id: severity_level
+    attributes:
+      label: Security Severity
+      description: How severe is this security issue?
+      options:
+        - "🚨 Critical - Immediate risk to trading operations or financial data"
+        - "❗ High - Significant security risk that should be addressed soon"
+        - "⚠️ Medium - Security improvement that should be considered"
+        - "📝 Low - General security enhancement suggestion"
+        - "ℹ️ Informational - Security best practice recommendation"
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Security Issue Description
+      description: Describe the security issue or concern
+      placeholder: |
+        - What is the security issue?
+        - What systems or data could be affected?
+        - What is the potential impact?
+    validations:
+      required: true
+
+  - type: dropdown
+    id: affected_component
+    attributes:
+      label: Affected Component
+      description: Which part of the system is affected?
+      options:
+        - Frontend (Electron/Vue.js)
+        - Backend API (FastAPI)
+        - Authentication System
+        - Database/Storage
+        - Trading API Integration
+        - Market Data Feeds
+        - WebSocket Connections
+        - Configuration/Secrets
+        - Build/Deployment Process
+        - Third-party Dependencies
+        - Network/Infrastructure
+        - Multiple Components
+        - Unknown
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Reproduction Steps (if applicable)
+      description: How can this security issue be reproduced or verified?
+      placeholder: |
+        If this is a vulnerability:
+        1. Step to demonstrate the issue
+        2. Expected vs actual security behavior
+        3. Evidence of the security gap
+        
+        ⚠️ Please do not include actual exploit code
+    validations:
+      required: false
+
+  - type: dropdown
+    id: financial_data_risk
+    attributes:
+      label: Financial Data Risk Assessment
+      description: Could this issue expose or compromise financial data?
+      options:
+        - "Yes - Direct access to account/trading data"
+        - "Yes - Indirect access through privilege escalation"
+        - "Possible - Under specific conditions"
+        - "No - No financial data exposure"
+        - "Unknown - Needs investigation"
+    validations:
+      required: true
+
+  - type: textarea
+    id: impact_assessment
+    attributes:
+      label: Impact Assessment
+      description: What could an attacker potentially do with this vulnerability?
+      placeholder: |
+        - Access unauthorized data?
+        - Manipulate trading operations?
+        - Gain system access?
+        - Deny service to users?
+        - Other potential impacts?
+    validations:
+      required: true
+
+  - type: textarea
+    id: mitigation
+    attributes:
+      label: Suggested Mitigation
+      description: Do you have suggestions for how to fix this issue?
+      placeholder: |
+        - Immediate workarounds
+        - Long-term solutions
+        - Security controls to implement
+        - Best practices to follow
+    validations:
+      required: false
+
+  - type: dropdown
+    id: disclosure_timeline
+    attributes:
+      label: Preferred Disclosure Timeline
+      description: How urgently should this be addressed?
+      options:
+        - "Immediate - Within 24-48 hours"
+        - "Urgent - Within 1 week"
+        - "Standard - Within 30 days"
+        - "Planned - Next security review cycle"
+        - "Best effort - When resources allow"
+    validations:
+      required: true
+
+  - type: input
+    id: references
+    attributes:
+      label: Security References
+      description: Any relevant CVE numbers, security advisories, or documentation
+      placeholder: "e.g., CVE-2023-12345, OWASP Top 10, specific security standards"
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: trading_platform_context
+    attributes:
+      label: Trading Platform Security Context
+      description: Check any relevant aspects for this trading platform
+      options:
+        - label: "🏦 Affects financial regulatory compliance"
+        - label: "💰 Could impact trading operations"
+        - label: "🔑 Involves API keys or credentials"
+        - label: "📊 Relates to market data security"
+        - label: "⚡ Affects real-time trading systems"
+        - label: "🔐 Involves user authentication"
+        - label: "💾 Concerns data encryption/storage"
+        - label: "🌐 Network/communication security"
+
+  - type: textarea
+    id: additional_info
+    attributes:
+      label: Additional Information
+      description: Any other relevant security context or information
+      placeholder: |
+        - Environment where this was discovered
+        - Tools used to identify the issue
+        - Related security measures already in place
+        - Any compensating controls
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: responsible_disclosure
+    attributes:
+      label: Responsible Disclosure Agreement
+      description: Please confirm your understanding
+      options:
+        - label: "I understand this is for non-critical security issues only"
+          required: true
+        - label: "I will not publicly disclose details until the issue is resolved"
+          required: true
+        - label: "I will follow responsible disclosure practices"
+          required: true
+        - label: "I have not shared exploit details publicly"
+          required: true

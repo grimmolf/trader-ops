@@ -1,0 +1,125 @@
+# Labeler configuration for automatic PR labeling
+# Labels PRs based on files changed
+
+# Backend changes
+'backend':
+  - 'src/backend/**/*'
+  - 'pyproject.toml'
+  - 'uv.lock'
+
+# Frontend changes  
+'frontend':
+  - 'src/frontend/**/*'
+  - 'package.json'
+  - 'package-lock.json'
+  - 'config/**/*'
+
+# Trading/Market Data
+'trading':
+  - 'src/backend/feeds/**/*'
+  - 'src/connectors/**/*'
+  - '**/*tradier*'
+  - '**/*market*'
+  - '**/*trading*'
+
+# Real-time/WebSocket
+'real-time':
+  - '**/*websocket*'
+  - '**/*ws*'
+  - 'src/backend/server.py'
+  - '**/*stream*'
+
+# Automation
+'automation':
+  - 'src/automation/**/*'
+  - '**/*kairos*'
+  - '**/*chronos*'
+  - '**/*backtest*'
+
+# Testing
+'testing':
+  - 'tests/**/*'
+  - '**/*test*'
+  - '**/*spec*'
+  - 'playwright.config.*'
+
+# Documentation
+'documentation':
+  - 'docs/**/*'
+  - '*.md'
+  - 'README*'
+
+# CI/CD and DevOps
+'ci-cd':
+  - '.github/**/*'
+  - 'scripts/**/*'
+  - '**/*docker*'
+  - '**/*deploy*'
+
+# Dependencies
+'dependencies':
+  - 'package.json'
+  - 'package-lock.json'
+  - 'pyproject.toml'
+  - 'uv.lock'
+  - 'requirements*.txt'
+
+# Configuration
+'configuration':
+  - 'config/**/*'
+  - '.env*'
+  - '**/*config*'
+  - '**/*.yml'
+  - '**/*.yaml'
+  - '**/*.json'
+
+# Security
+'security':
+  - '**/*auth*'
+  - '**/*security*'
+  - '**/*secret*'
+  - '**/*token*'
+  - '**/*credential*'
+
+# Performance
+'performance':
+  - '**/*benchmark*'
+  - '**/*performance*'
+  - '**/*perf*'
+  - '**/*optimization*'
+
+# Database
+'database':
+  - '**/*database*'
+  - '**/*db*'
+  - '**/*sql*'
+  - '**/*migration*'
+  - '**/*schema*'
+
+# User Interface
+'ui':
+  - 'src/frontend/renderer/**/*'
+  - '**/*component*'
+  - '**/*vue*'
+  - '**/*.css'
+  - '**/*.scss'
+
+# API
+'api':
+  - 'src/backend/**/*api*'
+  - 'src/backend/server.py'
+  - 'docs/api/**/*'
+
+# Electron
+'electron':
+  - 'src/frontend/main.ts'
+  - 'src/frontend/preload.ts'
+  - '**/*electron*'
+  - 'build/**/*'
+
+# Development Tools
+'dev-tools':
+  - 'scripts/**/*'
+  - '.vscode/**/*'
+  - '.gitignore'
+  - '.gitattributes'

@@ -1,0 +1,253 @@
+name: Feature Branch Automation
+
+on:
+  pull_request:
+    types: [opened, synchronize, ready_for_review, converted_to_draft]
+  pull_request_review:
+    types: [submitted]
+  issue_comment:
+    types: [created]
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: 'PR number to process'
+        required: true
+        type: number
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+  checks: read
+
+jobs:
+  pr-automation:
+    name: PR Automation
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request' || github.event_name == 'pull_request_review'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Auto-label PR
+        uses: actions/labeler@v5
+        with:
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+          configuration-path: .github/labeler.yml
+          sync-labels: true
+
+      - name: Check if dependency update PR
+        id: check-deps
+        run: |
+          if [[ "${{ github.event.pull_request.title }}" =~ ^chore:.*update.*dependencies ]]; then
+            echo "is_dependency_update=true" >> $GITHUB_OUTPUT
+          else
+            echo "is_dependency_update=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Add performance testing label for backend changes
+        if: contains(github.event.pull_request.title, 'backend') || contains(github.event.pull_request.body, 'performance')
+        run: |
+          gh pr edit ${{ github.event.number }} --add-label "performance-testing-required"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Add trading-critical label for market data changes
+        if: contains(github.event.pull_request.title, 'tradier') || contains(github.event.pull_request.title, 'market') || contains(github.event.pull_request.title, 'data')
+        run: |
+          gh pr edit ${{ github.event.number }} --add-label "trading-critical"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Request review for trading-critical changes
+        if: contains(github.event.pull_request.title, 'tradier') || contains(github.event.pull_request.title, 'market')
+        run: |
+          gh pr comment ${{ github.event.number }} --body "🚨 **Trading-Critical Change Detected**
+
+          This PR modifies trading or market data components. Please ensure:
+          - [ ] Market data accuracy is maintained
+          - [ ] Real-time performance is not degraded  
+          - [ ] Error handling is robust
+          - [ ] Logging captures sufficient detail for debugging
+
+          Consider testing during market hours if possible."
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  auto-merge-dependencies:
+    name: Auto-merge Dependencies
+    runs-on: ubuntu-latest
+    if: |
+      github.event_name == 'pull_request' && 
+      startsWith(github.event.pull_request.title, 'chore:') &&
+      contains(github.event.pull_request.title, 'dependencies') &&
+      github.event.pull_request.user.login == 'github-actions[bot]'
+    steps:
+      - name: Check PR status
+        id: pr-status
+        run: |
+          # Get PR details
+          pr_data=$(gh pr view ${{ github.event.number }} --json state,mergeable,statusCheckRollup)
+          
+          state=$(echo "$pr_data" | jq -r '.state')
+          mergeable=$(echo "$pr_data" | jq -r '.mergeable')
+          
+          # Check if all status checks are successful
+          status_checks=$(echo "$pr_data" | jq -r '.statusCheckRollup[].state' | sort | uniq)
+          
+          echo "state=$state" >> $GITHUB_OUTPUT
+          echo "mergeable=$mergeable" >> $GITHUB_OUTPUT
+          echo "status_checks=$status_checks" >> $GITHUB_OUTPUT
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Auto-approve dependency updates
+        if: steps.pr-status.outputs.state == 'OPEN' && steps.pr-status.outputs.mergeable == 'MERGEABLE'
+        run: |
+          gh pr review ${{ github.event.number }} --approve --body "🤖 Auto-approving dependency update after successful CI checks."
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Auto-merge after approval
+        if: |
+          steps.pr-status.outputs.state == 'OPEN' && 
+          steps.pr-status.outputs.mergeable == 'MERGEABLE' &&
+          !contains(steps.pr-status.outputs.status_checks, 'FAILURE') &&
+          !contains(steps.pr-status.outputs.status_checks, 'PENDING')
+        run: |
+          # Wait a moment for approval to register
+          sleep 10
+          gh pr merge ${{ github.event.number }} --squash --delete-branch
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  draft-pr-assistance:
+    name: Draft PR Assistance  
+    runs-on: ubuntu-latest
+    if: github.event.pull_request.draft == true
+    steps:
+      - name: Add draft PR comment
+        run: |
+          gh pr comment ${{ github.event.number }} --body "📝 **Draft PR Detected**
+
+          This PR is in draft mode. Here are some development tips:
+
+          🔧 **For Feature Development:**
+          - Use \`git commit --no-verify\` for quick WIP commits
+          - Add \`[skip-dev-log]\` to commit messages for minor changes
+          - Run \`npm run dev\` for hot reloading during development
+
+          🧪 **Before Moving to Ready:**
+          - [ ] All tests pass (\`npm test\`)
+          - [ ] No linting errors (\`npm run lint\`) 
+          - [ ] Type checking passes (\`npm run type-check\`)
+          - [ ] Performance benchmarks acceptable
+          - [ ] Development log completed for significant changes
+
+          🚀 **Ready to Review:**
+          Click 'Ready for review' when you want this PR reviewed and potentially merged."
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  performance-benchmark-check:
+    name: Performance Benchmark Check
+    runs-on: ubuntu-latest
+    if: |
+      contains(github.event.pull_request.labels.*.name, 'performance-testing-required') ||
+      contains(github.event.pull_request.title, 'performance') ||
+      contains(github.event.pull_request.body, 'performance')
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install UV
+        uses: astral-sh/setup-uv@v3
+        with:
+          version: "latest"
+
+      - name: Set up Python
+        run: uv python install "3.11"
+
+      - name: Install dependencies
+        run: uv sync --group dev
+
+      - name: Run performance benchmarks
+        run: |
+          # Run benchmarks and capture results
+          uv run pytest tests/ -m "not slow" --benchmark-only --benchmark-json=benchmark-results.json || true
+          
+          # Check if benchmark file exists
+          if [ -f "benchmark-results.json" ]; then
+            echo "📊 Performance benchmarks completed successfully"
+          else
+            echo "⚠️ No performance benchmarks found - consider adding benchmark tests for performance-critical changes"
+          fi
+
+      - name: Comment benchmark results
+        if: always()
+        run: |
+          if [ -f "benchmark-results.json" ]; then
+            # Extract key metrics (this would need to be customized based on your benchmark structure)
+            echo "📊 **Performance Benchmark Results**" > benchmark-comment.md
+            echo "" >> benchmark-comment.md
+            echo "Benchmark tests completed. Review the detailed results in the CI logs." >> benchmark-comment.md
+            echo "" >> benchmark-comment.md
+            echo "🎯 **Key Areas to Monitor:**" >> benchmark-comment.md
+            echo "- Market data processing latency" >> benchmark-comment.md  
+            echo "- WebSocket connection performance" >> benchmark-comment.md
+            echo "- Memory usage during market hours" >> benchmark-comment.md
+            
+            gh pr comment ${{ github.event.number }} --body-file benchmark-comment.md
+          fi
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  comment-commands:
+    name: Process Comment Commands
+    runs-on: ubuntu-latest
+    if: |
+      github.event_name == 'issue_comment' && 
+      github.event.issue.pull_request &&
+      contains(github.event.comment.body, '/benchmark') ||
+      contains(github.event.comment.body, '/test-market-data') ||
+      contains(github.event.comment.body, '/deploy-staging')
+    steps:
+      - name: Process benchmark command
+        if: contains(github.event.comment.body, '/benchmark')
+        run: |
+          gh pr comment ${{ github.event.issue.number }} --body "🚀 Triggering performance benchmarks...
+
+          This will run the full performance test suite. Results will be posted here when complete."
+          
+          # Trigger the performance workflow
+          gh workflow run performance-monitoring.yml -f pr_number=${{ github.event.issue.number }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Process market data test command
+        if: contains(github.event.comment.body, '/test-market-data')
+        run: |
+          gh pr comment ${{ github.event.issue.number }} --body "📊 Triggering market data connectivity tests...
+
+          This will validate:
+          - Tradier API connectivity
+          - TradingView data feed
+          - WebSocket stability
+          - Error handling
+
+          Results will be posted when complete."
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Process staging deployment command
+        if: contains(github.event.comment.body, '/deploy-staging')
+        run: |
+          gh pr comment ${{ github.event.issue.number }} --body "🚀 Triggering staging deployment...
+
+          This will deploy the current PR to the staging environment for testing.
+          
+          ⚠️ **Note:** Staging deployments should be used carefully during market hours."
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

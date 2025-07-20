@@ -1,0 +1,190 @@
+# Code Owners for Trader Ops Platform
+# This file defines who should review changes to specific parts of the codebase
+# See: https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
+
+# Global Owners (fallback for any file not covered by specific rules)
+* @grimmolf
+
+# ==========================================
+# CORE TRADING SYSTEM COMPONENTS
+# ==========================================
+
+# Trading engine and market data processing (CRITICAL)
+src/backend/trading/ @grimmolf
+src/backend/market_data/ @grimmolf
+src/backend/real_time/ @grimmolf
+
+# Order management and execution
+src/backend/orders/ @grimmolf
+src/frontend/components/trading/ @grimmolf
+
+# Portfolio and position management  
+src/backend/portfolio/ @grimmolf
+src/frontend/components/portfolio/ @grimmolf
+
+# ==========================================
+# SECURITY SENSITIVE AREAS
+# ==========================================
+
+# Authentication and authorization
+src/backend/auth/ @grimmolf
+src/frontend/auth/ @grimmolf
+
+# API integrations with trading platforms
+src/backend/integrations/ @grimmolf
+src/backend/api/tradier/ @grimmolf
+src/backend/api/market_data/ @grimmolf
+
+# Configuration files with potential secrets
+config/ @grimmolf
+*.env.* @grimmolf
+docker-compose*.yml @grimmolf
+
+# Security-related files
+.github/workflows/security-enhanced.yml @grimmolf
+src/**/security/ @grimmolf
+
+# ==========================================
+# INFRASTRUCTURE & DEPLOYMENT
+# ==========================================
+
+# GitHub Actions workflows
+.github/workflows/ @grimmolf
+
+# Docker and containerization
+Dockerfile* @grimmolf
+.devcontainer/ @grimmolf
+
+# Build and deployment
+scripts/ @grimmolf
+package.json @grimmolf
+pyproject.toml @grimmolf
+
+# ==========================================
+# FRONTEND COMPONENTS
+# ==========================================
+
+# Main application structure
+src/frontend/App.vue @grimmolf
+src/frontend/main.ts @grimmolf
+
+# Trading-related UI components
+src/frontend/components/trading/ @grimmolf
+src/frontend/components/charts/ @grimmolf
+src/frontend/components/market-data/ @grimmolf
+
+# TradingView integration
+src/frontend/tradingview/ @grimmolf
+src/frontend/components/tradingview/ @grimmolf
+
+# ==========================================
+# BACKEND API & SERVICES
+# ==========================================
+
+# Main FastAPI application
+src/backend/main.py @grimmolf
+src/backend/server.py @grimmolf
+
+# API routes
+src/backend/api/ @grimmolf
+src/backend/routes/ @grimmolf
+
+# Database models and migrations
+src/backend/models/ @grimmolf
+src/backend/database/ @grimmolf
+alembic/ @grimmolf
+
+# ==========================================
+# TESTING & QUALITY ASSURANCE
+# ==========================================
+
+# Test configurations
+pytest.ini @grimmolf
+.eslintrc.* @grimmolf
+.prettierrc.* @grimmolf
+vite.config.ts @grimmolf
+
+# Critical test suites
+tests/integration/ @grimmolf
+tests/trading/ @grimmolf
+tests/security/ @grimmolf
+tests/performance/ @grimmolf
+
+# ==========================================
+# DOCUMENTATION & CONFIGURATION
+# ==========================================
+
+# README and main documentation
+README.md @grimmolf
+docs/ @grimmolf
+
+# Project configuration
+.gitignore @grimmolf
+.github/ @grimmolf
+
+# Dependency management
+requirements*.txt @grimmolf
+package-lock.json @grimmolf
+uv.lock @grimmolf
+
+# ==========================================
+# SPECIAL RULES FOR SOLO DEVELOPMENT
+# ==========================================
+
+# For solo development, these rules provide:
+# 1. Automatic assignment for review requests
+# 2. Clear ownership documentation
+# 3. Future-proofing for team expansion
+
+# When expanding to a team, consider these patterns:
+
+# Example team-based ownership:
+# src/backend/ @backend-team
+# src/frontend/ @frontend-team  
+# src/trading/ @trading-team @security-team
+# .github/workflows/ @devops-team
+# docs/ @documentation-team
+
+# Example file-type based ownership:
+# *.py @python-developers
+# *.ts *.vue @frontend-developers
+# *.yml *.yaml @devops-team
+# *.md @documentation-team
+
+# Example security-sensitive patterns:
+# **/auth/** @security-team @lead-developer
+# **/trading/** @trading-team @security-team @lead-developer
+# **/*secret* @security-team
+# **/*key* @security-team
+# **/api/** @api-team @security-team
+
+# ==========================================
+# CRITICAL PATH PROTECTION
+# ==========================================
+
+# These files require extra scrutiny due to trading system criticality
+src/backend/trading/order_execution.py @grimmolf
+src/backend/trading/risk_management.py @grimmolf
+src/backend/market_data/real_time_processor.py @grimmolf
+src/backend/integrations/tradier_client.py @grimmolf
+
+# Performance-critical components
+src/backend/real_time/ @grimmolf
+src/frontend/components/charts/real-time-chart.vue @grimmolf
+
+# ==========================================
+# EMERGENCY CONTACTS & ESCALATION
+# ==========================================
+
+# For critical production issues during market hours:
+# Primary: @grimmolf
+# 
+# For security incidents:
+# Primary: @grimmolf
+# Email: security@trader-ops.example.com
+# 
+# For infrastructure emergencies:
+# Primary: @grimmolf
+# 
+# NOTE: This section should be updated with additional contacts
+# as the team grows or external support is added.

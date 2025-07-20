@@ -56,6 +56,14 @@ A comprehensive cross-platform trading dashboard built with Electron, Vue.js, an
 - **🔒 Type Safety**: Full TypeScript and Python type checking
 - **🧪 Testing Suite**: Unit, integration, and E2E test coverage
 
+### 🤖 Advanced GitHub Automation
+- **🔄 Comprehensive CI/CD**: Multi-platform testing, security scanning, performance monitoring
+- **🚀 Feature Branch Automation**: Auto-labeling, dependency auto-merge, performance testing
+- **📈 Performance Monitoring**: Automated regression detection and trend analysis
+- **🔒 Enhanced Security**: Secrets detection, dependency scanning, financial compliance
+- **⏰ Market-Aware Deployment**: Trading hours protection with emergency override
+- **📦 Release Automation**: Semantic versioning with automated changelogs
+
 ## ✅ System Status
 
 **Project Status**: **Production Ready** 🚀
@@ -72,6 +80,7 @@ All core systems have been implemented and verified:
 | 🧪 **Test Suite Coverage** | ✅ 22/22 Tests Passing | >90% coverage | January 2024 |
 | 🔒 **Security & Authentication** | ✅ Implemented | Automated scanning | January 2024 |
 | 🚀 **CI/CD Pipeline** | ✅ Operational | Multi-platform builds | January 2024 |
+| 🤖 **GitHub Automation** | ✅ Operational | Advanced workflows | January 2024 |
 
 **Development Infrastructure**:
 - ✅ **⚡ UV-powered setup**: Single command project initialization (`./scripts/setup_uv.sh`)
@@ -79,6 +88,7 @@ All core systems have been implemented and verified:
 - ✅ **📝 Automated logging**: Git hooks for comprehensive development tracking
 - ✅ **🔒 Type safety**: Full TypeScript/Python coverage with strict checking
 - ✅ **🏗️ Modern CI/CD**: GitHub Actions with security scanning and performance monitoring
+- ✅ **🤖 Advanced Automation**: Feature branch automation, market-aware deployment, auto-merge
 - ✅ **📚 Production docs**: Comprehensive API reference and user guides
 
 ## 📋 Table of Contents
@@ -90,6 +100,7 @@ All core systems have been implemented and verified:
 - [Architecture](#-architecture)
 - [API Documentation](#-api-documentation)
 - [Development](#-development)
+- [GitHub Workflows](#-github-workflows)
 - [Testing](#-testing)
 - [Deployment](#-deployment)
 - [Contributing](#-contributing)
@@ -476,6 +487,65 @@ git commit -m "Add new feature"     # Triggers development logging
 git push origin feature/new-feature
 # Create pull request
 ```
+
+## 🤖 GitHub Workflows
+
+This project includes comprehensive GitHub Actions workflows designed specifically for professional trading platform development:
+
+### 🔄 Core CI/CD Pipeline (`ci.yml`)
+- **Multi-platform Testing**: Python 3.11+, Node.js 18+ across Ubuntu, Windows, macOS
+- **Code Quality**: Ruff, mypy, Black, ESLint, TypeScript validation
+- **Security Scanning**: Bandit, Safety, automated vulnerability detection
+- **Performance Regression**: Trading-specific benchmark monitoring
+- **Automated Documentation**: API docs generation and GitHub Pages deployment
+
+### 🚀 Feature Branch Automation (`feature-branch-automation.yml`)
+- **Smart Auto-Labeling**: Automatic PR categorization based on files changed
+- **Trading-Critical Detection**: Special handling for market data and trading components
+- **Auto-Merge Dependencies**: Safe automatic merging of dependency updates
+- **Performance Testing**: Automated benchmarks for performance-critical changes
+- **Comment Commands**: `/benchmark`, `/test-market-data`, `/deploy-staging`
+
+### 📈 Performance Monitoring (`performance-monitoring.yml`)
+- **Regression Detection**: Compares against historical baselines
+- **Trading-Specific Metrics**: WebSocket latency, market data processing speed
+- **Memory Profiling**: Automated memory usage analysis
+- **Trend Analysis**: Long-term performance tracking
+- **PR Comments**: Automated performance reports on pull requests
+
+### 🔒 Enhanced Security (`security-enhanced.yml`)
+- **Secrets Detection**: TruffleHog integration with trading API pattern detection
+- **Dependency Security**: Python Safety and npm audit with vulnerability reporting
+- **Financial Compliance**: PII and financial data pattern detection
+- **Daily Scans**: Scheduled comprehensive security assessments
+- **Executive Summaries**: Risk assessment reports for stakeholders
+
+### ⏰ Market-Aware Deployment (`market-aware-deployment.yml`)
+- **Trading Hours Protection**: Blocks deployment during market hours (9:30 AM - 4:00 PM ET)
+- **Emergency Override**: Force deployment option for critical fixes
+- **Market Holiday Detection**: Safe deployment during market closures
+- **Health Checks**: Pre-deployment system validation
+
+### 📦 Release Automation (`release-automation.yml`)
+- **Semantic Versioning**: Automated version bumping from conventional commits
+- **Multi-Platform Builds**: Electron distributables for Windows, macOS, Linux
+- **Automated Changelogs**: Generated from commit messages and PR descriptions
+- **Release Notes**: Comprehensive feature documentation
+
+### 🔧 Repository Configuration
+The `.github/` directory includes comprehensive repository setup:
+- **Issue Templates**: Bug reports, feature requests, performance issues, security concerns
+- **CODEOWNERS**: Automated review assignment for different components
+- **Branch Protection**: Required status checks and review requirements
+- **Auto-Labeling**: Intelligent PR labeling based on file changes
+- **Dev Container**: Complete development environment configuration
+
+### 💡 Workflow Benefits for Solo Development
+- **Reduced Manual Work**: Automated testing, labeling, and merging
+- **Quality Assurance**: Comprehensive testing before any changes reach main
+- **Security First**: Proactive security scanning and compliance checking
+- **Performance Awareness**: Continuous monitoring of trading system performance
+- **Professional Standards**: Enterprise-grade practices adapted for individual developers
 
 ## 🧪 Testing
 

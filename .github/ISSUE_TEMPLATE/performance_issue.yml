@@ -1,0 +1,211 @@
+name: ⚡ Performance Issue
+description: Report performance problems in the trading platform
+title: "[Performance]: "
+labels: ["performance", "triage"]
+assignees:
+  - grimmolf
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## ⚡ Performance Issue Report
+        
+        Performance is critical for trading applications. Please provide detailed information about the performance issue you're experiencing.
+
+  - type: dropdown
+    id: performance_area
+    attributes:
+      label: Performance Area
+      description: Which component is experiencing performance issues?
+      options:
+        - Market Data Processing
+        - Real-time WebSocket Feeds
+        - Chart/Graph Rendering
+        - API Response Times
+        - Database Queries
+        - UI Responsiveness
+        - Memory Usage
+        - CPU Usage
+        - Network Performance
+        - Startup Time
+        - Search/Filtering
+        - Order Execution
+        - Other
+    validations:
+      required: true
+
+  - type: dropdown
+    id: severity
+    attributes:
+      label: Performance Impact
+      description: How severely does this impact trading operations?
+      options:
+        - "🚨 Critical - Prevents trading/causes losses"
+        - "❗ High - Significantly delays trading decisions"
+        - "⚠️ Medium - Noticeable but manageable delay"
+        - "📝 Low - Minor annoyance"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: market_session
+    attributes:
+      label: Market Session Impact
+      description: When do you notice this performance issue?
+      options:
+        - "Market Open (9:30-10:30 AM ET) - High Volume"
+        - "Regular Trading Hours (10:30 AM-4:00 PM ET)"
+        - "Market Close (3:30-4:00 PM ET) - High Volume"
+        - "Pre-Market Trading (4:00-9:30 AM ET)"
+        - "After-Hours Trading (4:00-8:00 PM ET)"
+        - "All Times - Consistent Issue"
+        - "Weekend/Market Closed"
+        - "Specific Events (earnings, FOMC, etc.)"
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Performance Issue Description
+      description: Describe the performance problem in detail
+      placeholder: |
+        - What operation/action is slow?
+        - How long does it currently take?
+        - What would be an acceptable response time?
+        - When did you first notice this issue?
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduction_steps
+    attributes:
+      label: Steps to Reproduce
+      description: Specific steps to reproduce the performance issue
+      placeholder: |
+        1. Open the application
+        2. Navigate to...
+        3. Perform action...
+        4. Notice delay/lag in...
+    validations:
+      required: true
+
+  - type: input
+    id: baseline_performance
+    attributes:
+      label: Expected Performance
+      description: What response time or performance level do you expect?
+      placeholder: "e.g., Market data updates should appear within 100ms"
+    validations:
+      required: true
+
+  - type: input
+    id: current_performance
+    attributes:
+      label: Current Performance
+      description: What is the actual response time or performance you're experiencing?
+      placeholder: "e.g., Currently taking 2-3 seconds for updates"
+    validations:
+      required: true
+
+  - type: textarea
+    id: metrics
+    attributes:
+      label: Performance Metrics (if available)
+      description: Any specific measurements or monitoring data
+      render: shell
+      placeholder: |
+        Response times, memory usage, CPU usage, network latency, etc.
+        Include any screenshots of performance monitoring tools
+    validations:
+      required: false
+
+  - type: input
+    id: browser
+    attributes:
+      label: Browser & Version
+      description: Browser and version (if frontend issue)
+      placeholder: "e.g., Chrome 120.0.6099.129, Firefox 121.0"
+    validations:
+      required: false
+
+  - type: input
+    id: system_specs
+    attributes:
+      label: System Specifications
+      description: Hardware specs that might be relevant
+      placeholder: "e.g., RAM: 16GB, CPU: Intel i7, SSD, Internet: 100Mbps"
+    validations:
+      required: false
+
+  - type: input
+    id: data_volume
+    attributes:
+      label: Data Volume Context
+      description: How much data were you processing when this occurred?
+      placeholder: "e.g., 500 stocks in watchlist, 20 active charts, 10 positions"
+    validations:
+      required: false
+
+  - type: dropdown
+    id: frequency
+    attributes:
+      label: Issue Frequency
+      description: How often does this performance issue occur?
+      options:
+        - "Always - 100% of the time"
+        - "Usually - More than 75% of the time"
+        - "Sometimes - 25-75% of the time"
+        - "Rarely - Less than 25% of the time"
+        - "Specific conditions only"
+    validations:
+      required: true
+
+  - type: textarea
+    id: workaround
+    attributes:
+      label: Current Workaround
+      description: Any temporary solutions you're using
+      placeholder: "Describe any workarounds you've found..."
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: impact_assessment
+    attributes:
+      label: Trading Impact Assessment
+      description: Check all that apply
+      options:
+        - label: "💰 Affects trade execution timing"
+        - label: "📊 Delays market data analysis"
+        - label: "⚠️ Impacts risk management decisions"
+        - label: "🔄 Causes missed trading opportunities"
+        - label: "📈 Affects chart analysis"
+        - label: "🚨 Triggers timeout errors"
+        - label: "💻 Makes UI unresponsive"
+        - label: "🔋 Causes excessive resource usage"
+
+  - type: textarea
+    id: additional_context
+    attributes:
+      label: Additional Context
+      description: Any other relevant information about this performance issue
+      placeholder: "Network conditions, specific market events, error logs, etc."
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: Performance Issue Checklist
+      description: Please confirm the following
+      options:
+        - label: "I have searched for existing performance issues"
+          required: true
+        - label: "I have tested this during different market conditions"
+          required: false
+        - label: "I have provided specific timing measurements"
+          required: true
+        - label: "This issue consistently affects trading operations"
+          required: true

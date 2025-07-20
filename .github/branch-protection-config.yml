@@ -1,0 +1,181 @@
+# Branch Protection Configuration for Trading Platform
+# This file documents the recommended branch protection settings for the repository
+# Apply these settings through GitHub UI: Settings > Branches > Add rule
+
+# MAIN BRANCH PROTECTION
+main_branch:
+  branch_name: "main"
+  protection_rules:
+    # Require PR before merging
+    require_pull_request_reviews:
+      enabled: true
+      required_reviewing_teams: []
+      required_reviewers: 1
+      dismiss_stale_reviews: true
+      require_code_owner_reviews: false
+      restrict_dismissals: false
+      
+    # Require status checks to pass before merging
+    require_status_checks:
+      enabled: true
+      strict: true  # Require branches to be up to date before merging
+      required_checks:
+        - "CI / test-python"
+        - "CI / test-frontend" 
+        - "CI / lint-and-format"
+        - "CI / security-scan"
+        - "CI / performance-check"
+        
+    # Additional protections
+    enforce_admins: false  # Allow admins to bypass for emergencies
+    require_linear_history: true  # Require linear commit history
+    allow_force_pushes: false
+    allow_deletions: false
+    restrict_pushes: false  # Allow direct pushes for solo development
+    
+    # Auto-merge settings
+    allow_auto_merge: true
+    require_conversation_resolution: true
+
+# DEVELOP BRANCH PROTECTION (if using GitFlow)
+develop_branch:
+  branch_name: "develop"
+  protection_rules:
+    require_pull_request_reviews:
+      enabled: true
+      required_reviewers: 1
+      dismiss_stale_reviews: false
+      
+    require_status_checks:
+      enabled: true
+      strict: false  # Less strict for development branch
+      required_checks:
+        - "CI / test-python"
+        - "CI / test-frontend"
+        - "CI / lint-and-format"
+        
+    enforce_admins: false
+    require_linear_history: false
+    allow_force_pushes: false
+    allow_deletions: false
+    restrict_pushes: false
+
+# FEATURE BRANCH PATTERNS
+feature_branches:
+  pattern: "feature/*"
+  protection_rules:
+    # Lighter protection for feature branches
+    require_pull_request_reviews:
+      enabled: false  # Allow pushing to feature branches
+      
+    require_status_checks:
+      enabled: true
+      strict: false
+      required_checks:
+        - "CI / test-python"
+        - "CI / lint-and-format"
+        
+    allow_force_pushes: true  # Allow force pushes for feature development
+    allow_deletions: true
+
+# RELEASE BRANCH PATTERNS  
+release_branches:
+  pattern: "release/*"
+  protection_rules:
+    require_pull_request_reviews:
+      enabled: true
+      required_reviewers: 1
+      
+    require_status_checks:
+      enabled: true
+      strict: true
+      required_checks:
+        - "CI / test-python"
+        - "CI / test-frontend"
+        - "CI / lint-and-format"
+        - "CI / security-scan"
+        - "CI / performance-check"
+        - "CI / integration-tests"
+        
+    enforce_admins: false
+    require_linear_history: true
+    allow_force_pushes: false
+    allow_deletions: false
+
+# HOTFIX BRANCH PATTERNS
+hotfix_branches:
+  pattern: "hotfix/*"
+  protection_rules:
+    require_pull_request_reviews:
+      enabled: true
+      required_reviewers: 1
+      dismiss_stale_reviews: true
+      
+    require_status_checks:
+      enabled: true
+      strict: true
+      required_checks:
+        - "CI / test-python"
+        - "CI / test-frontend"
+        - "CI / security-scan"
+        
+    enforce_admins: false
+    allow_force_pushes: false
+    allow_deletions: false
+
+# SPECIAL CONSIDERATIONS FOR TRADING PLATFORM
+trading_platform_notes: |
+  1. MARKET HOURS AWARENESS:
+     - Consider that urgent hotfixes may need to be deployed during market hours
+     - Have emergency override procedures for critical trading issues
+     
+  2. SECURITY REQUIREMENTS:
+     - All security-related changes must pass security scans
+     - Financial data handling code requires extra review
+     
+  3. PERFORMANCE CRITICAL:
+     - Performance checks are mandatory for main/release branches
+     - Real-time trading systems cannot tolerate performance regressions
+     
+  4. COMPLIANCE:
+     - Maintain audit trail through required reviews
+     - Document all production changes through PR process
+
+# GITHUB CLI COMMANDS TO APPLY THESE SETTINGS
+apply_settings_commands: |
+  # Main branch protection
+  gh api repos/:owner/:repo/branches/main/protection \
+    --method PUT \
+    --field required_status_checks='{"strict":true,"checks":[{"context":"CI / test-python"},{"context":"CI / test-frontend"},{"context":"CI / lint-and-format"},{"context":"CI / security-scan"},{"context":"CI / performance-check"}]}' \
+    --field enforce_admins=false \
+    --field required_pull_request_reviews='{"required_approving_review_count":1,"dismiss_stale_reviews":true}' \
+    --field restrictions=null \
+    --field allow_force_pushes=false \
+    --field allow_deletions=false
+
+  # Enable auto-merge
+  gh api repos/:owner/:repo \
+    --method PATCH \
+    --field allow_auto_merge=true
+
+# AUTOMATION RULES
+automation_rules:
+  auto_merge_conditions:
+    - "All required status checks pass"
+    - "At least 1 approved review (for protected branches)"
+    - "No requested changes from reviewers"
+    - "PR labeled with 'auto-merge' (for dependency updates)"
+    
+  emergency_procedures:
+    description: "For critical trading system fixes during market hours"
+    bypass_requirements:
+      - "Admin can bypass PR requirements with emergency label"
+      - "Must create follow-up issue for post-incident review"
+      - "Security scans still required (cannot be bypassed)"
+      
+  dependency_updates:
+    description: "Automated dependency updates via Dependabot"
+    special_handling:
+      - "Security updates: auto-merge after CI passes"
+      - "Minor updates: auto-merge after 24 hour soak period"
+      - "Major updates: require manual review"

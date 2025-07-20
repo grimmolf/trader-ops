@@ -1,0 +1,189 @@
+name: ❓ Support & Questions
+description: General questions about usage, setup, or trading platform features
+title: "[Question]: "
+labels: ["question", "support"]
+assignees:
+  - grimmolf
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## ❓ Support & Questions
+        
+        For general questions about using the trading platform, setup help, or clarification about features.
+        
+        **Before submitting**: Please check the [documentation](docs/) and existing issues first.
+
+  - type: dropdown
+    id: question_type
+    attributes:
+      label: Question Category
+      description: What type of question is this?
+      options:
+        - Setup & Installation
+        - Configuration & Settings
+        - Trading Features Usage
+        - API Integration Help
+        - TradingView Integration
+        - Market Data Sources
+        - Authentication & Security
+        - Performance Optimization
+        - Troubleshooting
+        - Best Practices
+        - Feature Clarification
+        - Development & Customization
+        - Other
+    validations:
+      required: true
+
+  - type: dropdown
+    id: user_level
+    attributes:
+      label: Experience Level
+      description: What's your experience level with trading platforms?
+      options:
+        - "Beginner - New to trading platforms"
+        - "Intermediate - Some trading platform experience"
+        - "Advanced - Experienced trader"
+        - "Developer - Technical implementation focus"
+    validations:
+      required: true
+
+  - type: textarea
+    id: question
+    attributes:
+      label: Your Question
+      description: What would you like to know?
+      placeholder: |
+        Please be as specific as possible:
+        - What are you trying to accomplish?
+        - What have you tried so far?
+        - Where are you getting stuck?
+    validations:
+      required: true
+
+  - type: dropdown
+    id: urgency
+    attributes:
+      label: Urgency Level
+      description: How urgent is this question for your trading activities?
+      options:
+        - "🚨 Urgent - Blocking active trading"
+        - "⚠️ Important - Needed for upcoming trades"
+        - "📋 Normal - General improvement/learning"
+        - "💡 Low - Nice to know/future planning"
+    validations:
+      required: true
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Context & Background
+      description: Provide context about your trading setup and goals
+      placeholder: |
+        - What type of trading do you do? (day trading, swing trading, etc.)
+        - What markets are you focused on?
+        - What's your current setup?
+        - What specific outcome are you hoping for?
+    validations:
+      required: false
+
+  - type: textarea
+    id: attempted_solutions
+    attributes:
+      label: What Have You Tried?
+      description: What steps have you already taken to solve this?
+      placeholder: |
+        - Documentation sections you've checked
+        - Settings you've tried
+        - Google searches or other resources consulted
+        - Similar tools you've used before
+    validations:
+      required: false
+
+  - type: input
+    id: environment
+    attributes:
+      label: Environment Details
+      description: What's your setup?
+      placeholder: "e.g., Windows 11, Chrome browser, Tradier account, real-time data subscription"
+    validations:
+      required: false
+
+  - type: textarea
+    id: error_messages
+    attributes:
+      label: Error Messages (if any)
+      description: Include any error messages or unexpected behavior
+      render: shell
+      placeholder: "Paste any error messages or logs here..."
+    validations:
+      required: false
+
+  - type: input
+    id: related_features
+    attributes:
+      label: Related Features
+      description: Which specific features or components are you asking about?
+      placeholder: "e.g., market data feeds, order entry, chart analysis, alerts"
+    validations:
+      required: false
+
+  - type: dropdown
+    id: preferred_response
+    attributes:
+      label: Preferred Response Type
+      description: What type of response would be most helpful?
+      options:
+        - "Step-by-step instructions"
+        - "Code examples or configuration"
+        - "Documentation links and references"
+        - "Video walkthrough or screenshots"
+        - "General explanation or concepts"
+        - "Best practices and recommendations"
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: trading_context
+    attributes:
+      label: Trading Context (check all that apply)
+      description: Which aspects of trading are relevant to your question?
+      options:
+        - label: "📊 Real-time market data"
+        - label: "📈 Technical analysis and charting"
+        - label: "⚡ Order execution and management"
+        - label: "🚨 Alerts and notifications"
+        - label: "💼 Portfolio tracking"
+        - label: "🔌 Broker/API integration"
+        - label: "📱 Mobile or multi-device usage"
+        - label: "🤖 Automated trading strategies"
+        - label: "🔒 Security and privacy"
+        - label: "⚙️ Platform customization"
+
+  - type: textarea
+    id: additional_info
+    attributes:
+      label: Additional Information
+      description: Anything else that might be helpful for providing a good answer?
+      placeholder: |
+        - Screenshots (if helpful)
+        - Your typical trading workflow
+        - Specific goals or requirements
+        - Timeline considerations
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: research_checklist
+    attributes:
+      label: Research Checklist
+      description: Please confirm you've done some research first
+      options:
+        - label: "I have searched existing issues and discussions"
+          required: true
+        - label: "I have checked the documentation (if available)"
+          required: false
+        - label: "I have provided enough context for a helpful answer"
+          required: true

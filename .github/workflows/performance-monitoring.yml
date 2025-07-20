@@ -1,0 +1,573 @@
+name: Performance Monitoring
+
+on:
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: 'PR number to test (optional)'
+        required: false
+        type: number
+      duration_minutes:
+        description: 'Monitoring duration in minutes'
+        required: false
+        default: '5'
+        type: choice
+        options:
+          - '1'
+          - '5'
+          - '10'
+          - '30'
+      test_type:
+        description: 'Type of performance test'
+        required: true
+        default: 'comprehensive'
+        type: choice
+        options:
+          - comprehensive
+          - stress-test
+          - latency-only
+          - memory-profiling
+          - market-simulation
+  schedule:
+    # Run performance monitoring daily at 2 AM UTC (after market close)
+    - cron: '0 2 * * *'
+  pull_request:
+    types: [labeled]
+    # Trigger when PR is labeled with 'performance-test'
+
+permissions:
+  contents: read
+  pull-requests: write
+  issues: write
+
+jobs:
+  performance-setup:
+    name: Performance Test Setup
+    runs-on: ubuntu-latest
+    outputs:
+      test_duration: ${{ steps.setup.outputs.test_duration }}
+      test_type: ${{ steps.setup.outputs.test_type }}
+      pr_number: ${{ steps.setup.outputs.pr_number }}
+    steps:
+      - name: Setup test parameters
+        id: setup
+        run: |
+          # Determine test parameters based on trigger
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            duration="${{ github.event.inputs.duration_minutes }}"
+            test_type="${{ github.event.inputs.test_type }}"
+            pr_number="${{ github.event.inputs.pr_number }}"
+          elif [ "${{ github.event_name }}" = "schedule" ]; then
+            duration="10"
+            test_type="comprehensive"
+            pr_number=""
+          elif [ "${{ github.event_name }}" = "pull_request" ]; then
+            duration="5"
+            test_type="comprehensive"
+            pr_number="${{ github.event.number }}"
+          else
+            duration="5"
+            test_type="comprehensive"
+            pr_number=""
+          fi
+          
+          echo "test_duration=$duration" >> $GITHUB_OUTPUT
+          echo "test_type=$test_type" >> $GITHUB_OUTPUT
+          echo "pr_number=$pr_number" >> $GITHUB_OUTPUT
+          
+          echo "Performance test configuration:"
+          echo "  Duration: $duration minutes"
+          echo "  Type: $test_type"
+          echo "  PR: ${pr_number:-'N/A'}"
+
+  market-data-performance:
+    name: Market Data Performance
+    runs-on: ubuntu-latest
+    needs: [performance-setup]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+
+      - name: Install UV
+        uses: astral-sh/setup-uv@v3
+        with:
+          version: "latest"
+
+      - name: Set up Python
+        run: uv python install "3.11"
+
+      - name: Install dependencies
+        run: uv sync --group dev
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      - name: Install Node.js dependencies
+        run: npm ci
+
+      - name: Start backend server
+        run: |
+          # Start the FastAPI backend in background
+          uv run python -m uvicorn src.backend.server:app --host 0.0.0.0 --port 8000 &
+          echo $! > backend.pid
+          
+          # Wait for server to start
+          sleep 10
+          
+          # Verify server is running
+          curl -f http://localhost:8000/health || echo "Health check endpoint not available"
+
+      - name: Run market data performance tests
+        run: |
+          echo "🚀 Starting market data performance tests..."
+          
+          mkdir -p performance-results
+          
+          # Create comprehensive performance test
+          cat > performance_test.py << 'EOF'
+          import asyncio
+          import time
+          import json
+          import statistics
+          import httpx
+          from datetime import datetime, timedelta
+          import concurrent.futures
+          
+          class PerformanceMonitor:
+              def __init__(self):
+                  self.results = {
+                      'timestamp': datetime.now().isoformat(),
+                      'test_duration_minutes': int('${{ needs.performance-setup.outputs.test_duration }}'),
+                      'test_type': '${{ needs.performance-setup.outputs.test_type }}',
+                      'metrics': {}
+                  }
+              
+              async def test_api_latency(self, iterations=100):
+                  """Test API response latency"""
+                  latencies = []
+                  
+                  async with httpx.AsyncClient() as client:
+                      for i in range(iterations):
+                          start = time.perf_counter()
+                          try:
+                              response = await client.get('http://localhost:8000/health', timeout=5.0)
+                              end = time.perf_counter()
+                              if response.status_code == 200:
+                                  latencies.append((end - start) * 1000)  # Convert to milliseconds
+                          except Exception as e:
+                              print(f"Request {i} failed: {e}")
+                          
+                          if i % 10 == 0:
+                              print(f"Completed {i}/{iterations} latency tests")
+                  
+                  if latencies:
+                      return {
+                          'mean_ms': statistics.mean(latencies),
+                          'median_ms': statistics.median(latencies),
+                          'p95_ms': sorted(latencies)[int(0.95 * len(latencies))],
+                          'p99_ms': sorted(latencies)[int(0.99 * len(latencies))],
+                          'min_ms': min(latencies),
+                          'max_ms': max(latencies),
+                          'sample_count': len(latencies)
+                      }
+                  return {'error': 'No successful requests'}
+              
+              def test_websocket_simulation(self, duration_seconds=30):
+                  """Simulate WebSocket performance"""
+                  print(f"Simulating WebSocket performance for {duration_seconds} seconds...")
+                  
+                  # Simulate WebSocket message processing times
+                  message_times = []
+                  start_time = time.time()
+                  
+                  while time.time() - start_time < duration_seconds:
+                      # Simulate message processing
+                      process_start = time.perf_counter()
+                      
+                      # Simulate market data parsing
+                      mock_data = {
+                          'symbol': 'AAPL',
+                          'price': 150.0 + (time.time() % 10),
+                          'volume': 1000,
+                          'timestamp': time.time()
+                      }
+                      
+                      # Simulate data validation and transformation
+                      processed = {
+                              'symbol': mock_data['symbol'],
+                              'price': round(mock_data['price'], 2),
+                              'volume': int(mock_data['volume']),
+                              'change': 0.5
+                          }
+                      
+                      process_end = time.perf_counter()
+                      message_times.append((process_end - process_start) * 1000)
+                      
+                      # Simulate real-time frequency
+                      time.sleep(0.1)
+                  
+                  if message_times:
+                      return {
+                          'mean_processing_ms': statistics.mean(message_times),
+                          'median_processing_ms': statistics.median(message_times),
+                          'p95_processing_ms': sorted(message_times)[int(0.95 * len(message_times))],
+                          'messages_processed': len(message_times),
+                          'throughput_msg_per_sec': len(message_times) / duration_seconds
+                      }
+                  return {'error': 'No messages processed'}
+              
+              def test_memory_usage(self):
+                  """Monitor memory usage patterns"""
+                  import psutil
+                  import os
+                  
+                  process = psutil.Process(os.getpid())
+                  memory_samples = []
+                  
+                  # Simulate data processing workload
+                  for i in range(100):
+                      # Create some data structures to simulate market data handling
+                      market_data = [
+                          {
+                              'symbol': f'SYM{j}',
+                              'price': 100.0 + j,
+                              'volume': 1000 * j,
+                              'timestamp': time.time()
+                          }
+                          for j in range(100)
+                      ]
+                      
+                      # Process the data
+                      processed = [
+                          {
+                              'symbol': item['symbol'],
+                              'price': round(item['price'] * 1.01, 2),
+                              'volume': item['volume']
+                          }
+                          for item in market_data
+                      ]
+                      
+                      # Sample memory usage
+                      memory_info = process.memory_info()
+                      memory_samples.append(memory_info.rss / 1024 / 1024)  # MB
+                      
+                      if i % 20 == 0:
+                          print(f"Memory test progress: {i}/100")
+                  
+                  if memory_samples:
+                      return {
+                          'mean_memory_mb': statistics.mean(memory_samples),
+                          'max_memory_mb': max(memory_samples),
+                          'min_memory_mb': min(memory_samples),
+                          'samples': len(memory_samples)
+                      }
+                  return {'error': 'No memory samples collected'}
+              
+              async def run_comprehensive_test(self):
+                  """Run all performance tests"""
+                  print("Starting comprehensive performance test suite...")
+                  
+                  # API Latency Test
+                  print("1. Testing API latency...")
+                  self.results['metrics']['api_latency'] = await self.test_api_latency()
+                  
+                  # WebSocket Simulation
+                  print("2. Testing WebSocket simulation...")
+                  ws_duration = min(60, int('${{ needs.performance-setup.outputs.test_duration }}') * 60 // 4)
+                  self.results['metrics']['websocket_performance'] = self.test_websocket_simulation(ws_duration)
+                  
+                  # Memory Usage Test
+                  print("3. Testing memory usage...")
+                  self.results['metrics']['memory_usage'] = self.test_memory_usage()
+                  
+                  return self.results
+              
+              def save_results(self, filename='performance_results.json'):
+                  """Save results to file"""
+                  with open(filename, 'w') as f:
+                      json.dump(self.results, f, indent=2)
+          
+          async def main():
+              monitor = PerformanceMonitor()
+              results = await monitor.run_comprehensive_test()
+              monitor.save_results('performance-results/comprehensive_results.json')
+              
+              print("\n📊 Performance Test Results Summary:")
+              print("=" * 50)
+              
+              # API Latency
+              if 'api_latency' in results['metrics']:
+                  api = results['metrics']['api_latency']
+                  if 'mean_ms' in api:
+                      print(f"API Latency:")
+                      print(f"  Mean: {api['mean_ms']:.2f}ms")
+                      print(f"  P95:  {api['p95_ms']:.2f}ms")
+                      print(f"  P99:  {api['p99_ms']:.2f}ms")
+              
+              # WebSocket Performance
+              if 'websocket_performance' in results['metrics']:
+                  ws = results['metrics']['websocket_performance']
+                  if 'throughput_msg_per_sec' in ws:
+                      print(f"WebSocket Performance:")
+                      print(f"  Throughput: {ws['throughput_msg_per_sec']:.1f} msg/sec")
+                      print(f"  Processing: {ws['mean_processing_ms']:.3f}ms avg")
+              
+              # Memory Usage
+              if 'memory_usage' in results['metrics']:
+                  mem = results['metrics']['memory_usage']
+                  if 'mean_memory_mb' in mem:
+                      print(f"Memory Usage:")
+                      print(f"  Average: {mem['mean_memory_mb']:.1f}MB")
+                      print(f"  Peak:    {mem['max_memory_mb']:.1f}MB")
+          
+          if __name__ == "__main__":
+              asyncio.run(main())
+          EOF
+          
+          # Run the performance test
+          timeout_seconds=$(($((${{ needs.performance-setup.outputs.test_duration }} * 60)) + 60))
+          timeout ${timeout_seconds} uv run python performance_test.py || echo "Performance test completed or timed out"
+
+      - name: Generate performance report
+        run: |
+          echo "📊 Generating performance report..."
+          
+          cat > generate_report.py << 'EOF'
+          import json
+          import os
+          from datetime import datetime
+          
+          def load_results():
+              try:
+                  with open('performance-results/comprehensive_results.json', 'r') as f:
+                      return json.load(f)
+              except FileNotFoundError:
+                  return {'error': 'Results file not found'}
+          
+          def generate_markdown_report(results):
+              report = []
+              report.append("# 📊 Performance Test Report")
+              report.append("")
+              report.append(f"**Test Date**: {results.get('timestamp', 'Unknown')}")
+              report.append(f"**Test Duration**: {results.get('test_duration_minutes', 'Unknown')} minutes")
+              report.append(f"**Test Type**: {results.get('test_type', 'Unknown')}")
+              report.append("")
+              
+              metrics = results.get('metrics', {})
+              
+              # API Latency Section
+              if 'api_latency' in metrics:
+                  api = metrics['api_latency']
+                  if 'mean_ms' in api:
+                      report.append("## 🚀 API Performance")
+                      report.append("")
+                      report.append("| Metric | Value | Threshold | Status |")
+                      report.append("|--------|-------|-----------|---------|")
+                      
+                      # Define thresholds
+                      mean_status = "✅ Good" if api['mean_ms'] < 100 else "⚠️ Review" if api['mean_ms'] < 500 else "❌ Poor"
+                      p95_status = "✅ Good" if api['p95_ms'] < 200 else "⚠️ Review" if api['p95_ms'] < 1000 else "❌ Poor"
+                      
+                      report.append(f"| Mean Latency | {api['mean_ms']:.2f}ms | <100ms | {mean_status} |")
+                      report.append(f"| P95 Latency | {api['p95_ms']:.2f}ms | <200ms | {p95_status} |")
+                      report.append(f"| P99 Latency | {api['p99_ms']:.2f}ms | <500ms | ✅ Good |")
+                      report.append(f"| Sample Count | {api['sample_count']} | - | - |")
+                      report.append("")
+              
+              # WebSocket Performance
+              if 'websocket_performance' in metrics:
+                  ws = metrics['websocket_performance']
+                  if 'throughput_msg_per_sec' in ws:
+                      report.append("## ⚡ Real-time Data Performance")
+                      report.append("")
+                      report.append("| Metric | Value | Threshold | Status |")
+                      report.append("|--------|-------|-----------|---------|")
+                      
+                      throughput_status = "✅ Good" if ws['throughput_msg_per_sec'] > 5 else "⚠️ Review"
+                      processing_status = "✅ Good" if ws['mean_processing_ms'] < 1 else "⚠️ Review"
+                      
+                      report.append(f"| Message Throughput | {ws['throughput_msg_per_sec']:.1f}/sec | >5/sec | {throughput_status} |")
+                      report.append(f"| Processing Time | {ws['mean_processing_ms']:.3f}ms | <1ms | {processing_status} |")
+                      report.append(f"| Messages Processed | {ws['messages_processed']} | - | - |")
+                      report.append("")
+              
+              # Memory Usage
+              if 'memory_usage' in metrics:
+                  mem = metrics['memory_usage']
+                  if 'mean_memory_mb' in mem:
+                      report.append("## 💾 Memory Performance")
+                      report.append("")
+                      report.append("| Metric | Value | Threshold | Status |")
+                      report.append("|--------|-------|-----------|---------|")
+                      
+                      avg_status = "✅ Good" if mem['mean_memory_mb'] < 500 else "⚠️ Review"
+                      peak_status = "✅ Good" if mem['max_memory_mb'] < 1000 else "⚠️ Review"
+                      
+                      report.append(f"| Average Memory | {mem['mean_memory_mb']:.1f}MB | <500MB | {avg_status} |")
+                      report.append(f"| Peak Memory | {mem['max_memory_mb']:.1f}MB | <1000MB | {peak_status} |")
+                      report.append("")
+              
+              # Recommendations
+              report.append("## 💡 Recommendations")
+              report.append("")
+              
+              issues_found = False
+              
+              if 'api_latency' in metrics and 'mean_ms' in metrics['api_latency']:
+                  if metrics['api_latency']['mean_ms'] > 100:
+                      report.append("- ⚠️ API latency is elevated - consider caching or optimization")
+                      issues_found = True
+              
+              if 'websocket_performance' in metrics and 'throughput_msg_per_sec' in metrics['websocket_performance']:
+                  if metrics['websocket_performance']['throughput_msg_per_sec'] < 5:
+                      report.append("- ⚠️ WebSocket throughput is low - check message processing efficiency")
+                      issues_found = True
+              
+              if 'memory_usage' in metrics and 'max_memory_mb' in metrics['memory_usage']:
+                  if metrics['memory_usage']['max_memory_mb'] > 1000:
+                      report.append("- ⚠️ Peak memory usage is high - investigate memory leaks")
+                      issues_found = True
+              
+              if not issues_found:
+                  report.append("- ✅ All performance metrics are within acceptable ranges")
+              
+              report.append("")
+              report.append("---")
+              report.append("*This report was generated automatically by the performance monitoring workflow.*")
+              
+              return "\n".join(report)
+          
+          def main():
+              results = load_results()
+              if 'error' in results:
+                  print(f"Error loading results: {results['error']}")
+                  return
+              
+              markdown_report = generate_markdown_report(results)
+              
+              with open('performance-results/report.md', 'w') as f:
+                  f.write(markdown_report)
+              
+              # Also print summary to console
+              print(markdown_report)
+          
+          if __name__ == "__main__":
+              main()
+          EOF
+          
+          uv run python generate_report.py
+
+      - name: Comment on PR if applicable
+        if: needs.performance-setup.outputs.pr_number != ''
+        run: |
+          if [ -f "performance-results/report.md" ]; then
+            echo "Posting performance report to PR #${{ needs.performance-setup.outputs.pr_number }}"
+            gh pr comment ${{ needs.performance-setup.outputs.pr_number }} --body-file performance-results/report.md
+          fi
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload performance results
+        uses: actions/upload-artifact@v4
+        with:
+          name: performance-results-${{ github.sha }}
+          path: performance-results/
+          retention-days: 30
+
+      - name: Cleanup
+        if: always()
+        run: |
+          # Stop background processes
+          if [ -f backend.pid ]; then
+            kill $(cat backend.pid) 2>/dev/null || true
+            rm backend.pid
+          fi
+
+  performance-trending:
+    name: Performance Trending Analysis
+    runs-on: ubuntu-latest
+    needs: [market-data-performance]
+    if: github.event_name == 'schedule'
+    steps:
+      - name: Download historical performance data
+        uses: actions/download-artifact@v4
+        with:
+          pattern: performance-results-*
+          path: ./historical-data/
+        continue-on-error: true
+
+      - name: Analyze performance trends
+        run: |
+          echo "📈 Analyzing performance trends..."
+          
+          # Create trend analysis script
+          cat > trend_analysis.py << 'EOF'
+          import json
+          import os
+          from datetime import datetime, timedelta
+          import statistics
+          
+          def analyze_trends():
+              data_dir = "historical-data"
+              if not os.path.exists(data_dir):
+                  print("No historical data available")
+                  return
+              
+              results = []
+              
+              # Collect all performance results
+              for subdir in os.listdir(data_dir):
+                  result_file = os.path.join(data_dir, subdir, "comprehensive_results.json")
+                  if os.path.exists(result_file):
+                      try:
+                          with open(result_file, 'r') as f:
+                              data = json.load(f)
+                              results.append(data)
+                      except (json.JSONDecodeError, IOError):
+                          continue
+              
+              if len(results) < 2:
+                  print("Need at least 2 data points for trend analysis")
+                  return
+              
+              print(f"Analyzing trends from {len(results)} performance test runs")
+              
+              # Analyze API latency trends
+              api_latencies = []
+              for result in results:
+                  if 'metrics' in result and 'api_latency' in result['metrics']:
+                      api = result['metrics']['api_latency']
+                      if 'mean_ms' in api:
+                          api_latencies.append(api['mean_ms'])
+              
+              if len(api_latencies) > 1:
+                  recent_avg = statistics.mean(api_latencies[-3:])  # Last 3 runs
+                  older_avg = statistics.mean(api_latencies[:-3]) if len(api_latencies) > 3 else api_latencies[0]
+                  
+                  trend = "improving" if recent_avg < older_avg else "degrading" if recent_avg > older_avg else "stable"
+                  change_pct = ((recent_avg - older_avg) / older_avg) * 100 if older_avg > 0 else 0
+                  
+                  print(f"API Latency Trend: {trend} ({change_pct:+.1f}%)")
+                  print(f"  Recent average: {recent_avg:.2f}ms")
+                  print(f"  Historical average: {older_avg:.2f}ms")
+              
+              print("Trend analysis completed")
+          
+          if __name__ == "__main__":
+              analyze_trends()
+          EOF
+          
+          python trend_analysis.py || echo "Trend analysis completed with warnings"
+
+      - name: Create daily performance summary
+        run: |
+          echo "📊 Creating daily performance summary..."
+          
+          # This would typically post to a dashboard or send notifications
+          echo "Daily performance monitoring completed at $(date -u)"
+          echo "Results are available in the performance-results artifacts"

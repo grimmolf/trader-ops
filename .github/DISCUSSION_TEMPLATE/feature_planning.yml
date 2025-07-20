@@ -1,0 +1,211 @@
+labels:
+  - discussion
+  - feature-planning
+  - roadmap
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        # 🚀 Feature Planning Discussion
+        
+        Use this template to discuss new features, gather requirements, and plan implementation approaches before creating formal feature requests.
+
+  - type: dropdown
+    id: feature_scope
+    attributes:
+      label: Feature Scope
+      description: What's the scope of this feature discussion?
+      options:
+        - "Major Feature - New trading capability"
+        - "Enhancement - Improvement to existing feature"
+        - "Integration - New third-party service"
+        - "User Experience - UI/UX improvements"
+        - "Performance - Optimization or scaling"
+        - "Security - Security enhancement"
+        - "Infrastructure - Platform improvements"
+        - "Mobile - Mobile-specific features"
+    validations:
+      required: true
+
+  - type: textarea
+    id: overview
+    attributes:
+      label: Feature Overview
+      description: High-level description of the feature or enhancement
+      placeholder: |
+        What is this feature about? What problem does it solve?
+        Who would use it and why?
+    validations:
+      required: true
+
+  - type: textarea
+    id: user_stories
+    attributes:
+      label: User Stories
+      description: Describe the feature from user perspectives
+      placeholder: |
+        As a [type of trader]...
+        I want to [action/capability]...
+        So that I can [benefit/outcome]...
+        
+        Example:
+        As a day trader...
+        I want to set conditional alerts based on multiple indicators...
+        So that I can react quickly to trading opportunities without constantly monitoring charts...
+    validations:
+      required: true
+
+  - type: textarea
+    id: requirements
+    attributes:
+      label: Requirements & Acceptance Criteria
+      description: What are the key requirements and success criteria?
+      placeholder: |
+        Functional Requirements:
+        - [ ] Feature must work with real-time data
+        - [ ] Must integrate with existing portfolio view
+        
+        Technical Requirements:
+        - [ ] Response time under 100ms
+        - [ ] Works offline with cached data
+        
+        Business Requirements:
+        - [ ] Supports multiple account types
+        - [ ] Complies with trading regulations
+    validations:
+      required: false
+
+  - type: dropdown
+    id: priority
+    attributes:
+      label: Business Priority
+      description: How important is this feature for trading operations?
+      options:
+        - "Critical - Essential for competitive trading"
+        - "High - Significantly improves trading workflow"
+        - "Medium - Nice enhancement for user experience"
+        - "Low - Future consideration"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: complexity
+    attributes:
+      label: Estimated Complexity
+      description: How complex do you think this feature would be to implement?
+      options:
+        - "Small - Can be implemented in a few days"
+        - "Medium - Requires 1-2 weeks of development"
+        - "Large - Major feature requiring multiple weeks"
+        - "Epic - Complex feature that should be broken down"
+        - "Unknown - Needs technical investigation"
+    validations:
+      required: false
+
+  - type: textarea
+    id: technical_considerations
+    attributes:
+      label: Technical Considerations
+      description: Any technical aspects to consider?
+      placeholder: |
+        - API integrations needed
+        - Database schema changes
+        - Performance implications
+        - Security considerations
+        - Third-party dependencies
+        - Testing complexity
+    validations:
+      required: false
+
+  - type: textarea
+    id: market_impact
+    attributes:
+      label: Market/Trading Impact
+      description: How would this feature impact trading activities?
+      placeholder: |
+        - Which trading sessions would be affected?
+        - Are there market hours considerations?
+        - Does it affect order execution or risk management?
+        - Any regulatory compliance aspects?
+    validations:
+      required: false
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternative Approaches
+      description: Are there different ways to achieve the same goal?
+      placeholder: |
+        - Alternative implementation approaches
+        - Simpler versions that could be implemented first
+        - Third-party solutions that could be integrated
+        - Workarounds currently being used
+    validations:
+      required: false
+
+  - type: textarea
+    id: dependencies
+    attributes:
+      label: Dependencies & Blockers
+      description: What other features or capabilities does this depend on?
+      placeholder: |
+        - Other features that need to be implemented first
+        - Third-party services or APIs
+        - Infrastructure changes required
+        - Team knowledge or skills needed
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: integration_points
+    attributes:
+      label: Integration Points
+      description: Which parts of the system would this feature touch?
+      options:
+        - label: "Real-time market data feeds"
+        - label: "Trading API (Tradier/broker integration)"
+        - label: "TradingView charting"
+        - label: "Portfolio management"
+        - label: "Order management system"
+        - label: "Alert/notification system"
+        - label: "User authentication"
+        - label: "Database/storage"
+        - label: "Mobile application"
+        - label: "Reporting and analytics"
+
+  - type: textarea
+    id: open_questions
+    attributes:
+      label: Open Questions
+      description: What questions need to be answered before implementation?
+      placeholder: |
+        - How should the feature behave in edge cases?
+        - What happens during market outages?
+        - How should errors be handled?
+        - What configuration options are needed?
+        - How should it integrate with existing workflows?
+    validations:
+      required: false
+
+  - type: input
+    id: timeline
+    attributes:
+      label: Desired Timeline
+      description: When would you like to see this feature?
+      placeholder: "e.g., Next quarter, before earnings season, no specific timeline"
+    validations:
+      required: false
+
+  - type: textarea
+    id: additional_context
+    attributes:
+      label: Additional Context
+      description: Any other information that would be helpful?
+      placeholder: |
+        - Links to similar features in other platforms
+        - Screenshots or mockups
+        - Related discussions or issues
+        - Market events that make this important
+    validations:
+      required: false

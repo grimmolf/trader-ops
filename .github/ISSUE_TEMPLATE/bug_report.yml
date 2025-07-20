@@ -1,0 +1,186 @@
+name: 🐛 Bug Report
+description: Report a bug or unexpected behavior in the trading platform
+title: "[Bug]: "
+labels: ["bug", "triage"]
+assignees:
+  - grimmolf
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## 🐛 Bug Report
+        
+        Thanks for taking the time to fill out this bug report! Please provide as much detail as possible to help us reproduce and fix the issue.
+
+  - type: dropdown
+    id: component
+    attributes:
+      label: Component
+      description: Which component is affected?
+      options:
+        - Frontend (Electron/Vue.js)
+        - Backend (FastAPI/Python)
+        - Real-time Data (WebSocket/Streaming)
+        - Trading APIs (Tradier/Market Data)
+        - TradingView Integration
+        - Authentication/Security
+        - Database/Storage
+        - CI/CD/DevOps
+        - Documentation
+        - Other
+    validations:
+      required: true
+
+  - type: dropdown
+    id: severity
+    attributes:
+      label: Severity
+      description: How severe is this bug?
+      options:
+        - "🚨 Critical - Trading operations affected"
+        - "❗ High - Major functionality broken"
+        - "⚠️ Medium - Some functionality impacted"
+        - "📝 Low - Minor issue or cosmetic"
+    validations:
+      required: true
+
+  - type: input
+    id: environment
+    attributes:
+      label: Environment
+      description: Which environment is affected?
+      placeholder: "e.g., Production, Staging, Development, Local"
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Bug Description
+      description: Clear and concise description of what the bug is
+      placeholder: "Describe what happened..."
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Steps to Reproduce
+      description: Steps to reproduce the behavior
+      placeholder: |
+        1. Go to '...'
+        2. Click on '...'
+        3. Enter data '...'
+        4. See error
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected Behavior
+      description: What you expected to happen
+      placeholder: "Describe the expected behavior..."
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual Behavior
+      description: What actually happened
+      placeholder: "Describe what actually happened..."
+    validations:
+      required: true
+
+  - type: dropdown
+    id: market_conditions
+    attributes:
+      label: Market Conditions (if relevant)
+      description: Were specific market conditions involved?
+      options:
+        - "Market Open - High Volume"
+        - "Market Open - Normal Volume"
+        - "Pre-Market Trading"
+        - "After-Hours Trading"
+        - "Market Closed"
+        - "Weekend/Holiday"
+        - "Not Applicable"
+    validations:
+      required: false
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Error Logs
+      description: Any relevant error messages or logs
+      render: shell
+      placeholder: "Paste error logs here..."
+    validations:
+      required: false
+
+  - type: input
+    id: browser
+    attributes:
+      label: Browser (if frontend issue)
+      description: Browser and version
+      placeholder: "e.g., Chrome 120.0.6099.129"
+    validations:
+      required: false
+
+  - type: input
+    id: os
+    attributes:
+      label: Operating System
+      description: OS and version
+      placeholder: "e.g., macOS 14.2, Windows 11, Ubuntu 22.04"
+    validations:
+      required: false
+
+  - type: input
+    id: version
+    attributes:
+      label: Application Version
+      description: Version of the trading platform
+      placeholder: "e.g., v1.2.3"
+    validations:
+      required: false
+
+  - type: textarea
+    id: additional
+    attributes:
+      label: Additional Context
+      description: Any other context about the problem
+      placeholder: "Add any other context, screenshots, or relevant information..."
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: impact
+    attributes:
+      label: Impact Assessment
+      description: Check all that apply
+      options:
+        - label: "🚨 Blocks trading operations"
+        - label: "📊 Affects market data accuracy"
+        - label: "⚡ Performance degradation"
+        - label: "🔒 Security implications"
+        - label: "💰 Financial impact"
+        - label: "👥 Multiple users affected"
+        - label: "🔄 Workaround available"
+
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: Submission Checklist
+      description: Please confirm the following
+      options:
+        - label: "I have searched for existing issues"
+          required: true
+        - label: "I have provided steps to reproduce"
+          required: true
+        - label: "I have included relevant logs/screenshots"
+          required: false
+        - label: "This issue is reproducible"
+          required: true
