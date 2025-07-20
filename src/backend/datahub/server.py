@@ -30,7 +30,7 @@ from ..models.market_data import (
     Candle, Quote, Symbol, HistoryRequest, HistoryResponse, TimeFrame
 )
 from ..models.alerts import Alert, AlertEvent, AlertStatus
-from ..models.execution import Order, Execution
+from ..models.execution import Order, Execution, Position, Account
 from ..feeds.tradier import TradierConnector
 from ..services.backtest_service import (
     BacktestService, BacktestRequest, BacktestJob, BacktestStatus, get_backtest_service
@@ -128,6 +128,41 @@ class ConnectionManager:
         # Clean up disconnected sockets
         for websocket in disconnected:
             self.disconnect(websocket)
+    
+    async def broadcast_to_all(self, message: Dict[str, Any]):
+        """Broadcast message to all connected clients"""
+        if not self.active_connections:
+            return
+            
+        message_str = json.dumps(message)
+        disconnected = []
+        
+        for websocket in self.active_connections:
+            try:
+                await websocket.send_text(message_str)
+            except Exception as e:
+                logger.warning(f"Failed to send to websocket: {e}")
+                disconnected.append(websocket)
+        
+        # Clean up disconnected clients
+        for websocket in disconnected:
+            self.disconnect(websocket)
+    
+    async def broadcast_account_update(self, account_data: dict):
+        """Broadcast account update to all connections"""
+        await self.broadcast_to_all({
+            "type": "account",
+            "data": account_data,
+            "timestamp": datetime.now(timezone.utc).isoformat()
+        })
+    
+    async def broadcast_positions_update(self, positions_data: list):
+        """Broadcast positions update to all connections"""
+        await self.broadcast_to_all({
+            "type": "positions", 
+            "data": positions_data,
+            "timestamp": datetime.now(timezone.utc).isoformat()
+        })
 
 
 # Global instances
@@ -135,6 +170,58 @@ connection_manager = ConnectionManager()
 tradier_connector: Optional[TradierConnector] = None
 active_alerts: Dict[str, Alert] = {}
 
+
+async def broadcast_mock_data():
+    """Periodically broadcast mock data updates"""
+    import random
+    
+    while True:
+        try:
+            await asyncio.sleep(5)  # Update every 5 seconds
+            
+            if connection_manager.active_connections:
+                # Update account P&L with small random changes
+                mock_account.day_pnl += random.uniform(-50, 50)
+                mock_account.total_pnl += random.uniform(-25, 25)
+                
+                # Update position P&L
+                for position in mock_positions:
+                    position.day_pnl += random.uniform(-10, 10)
+                    position.total_pnl += random.uniform(-5, 5)
+                
+                # Broadcast updates
+                await connection_manager.broadcast_account_update(mock_account.dict())
+                await connection_manager.broadcast_positions_update([pos.dict() for pos in mock_positions])
+                
+                # Send mock quotes for watchlist symbols
+                watchlist_symbols = ['MNQ1!', 'ES1!', 'NQ1!', 'RTY1!', 'YM1!']
+                quotes = []
+                for symbol in watchlist_symbols:
+                    base_price = 17900.0 if 'MNQ' in symbol else 4750.0 if 'ES' in symbol else 18500.0
+                    price = base_price + random.uniform(-50, 50)
+                    change = random.uniform(-25, 25)
+                    change_percent = (change / base_price) * 100
+                    
+                    quote = Quote(
+                        symbol=symbol,
+                        price=price,
+                        change=change,
+                        change_percent=change_percent,
+                        volume=random.randint(1000, 10000),
+                        timestamp=int(time.time())
+                    )
+                    quotes.append(quote.dict())
+                
+                # Broadcast quotes
+                await connection_manager.broadcast_to_all({
+                    "type": "quotes",
+                    "data": quotes,
+                    "timestamp": datetime.now(timezone.utc).isoformat()
+                })
+                
+        except Exception as e:
+            logger.error(f"Error in mock data broadcast: {e}")
+            await asyncio.sleep(1)
 
 # Application lifespan
 @asynccontextmanager
@@ -156,10 +243,15 @@ async def lifespan(app: FastAPI):
     else:
         logger.warning("Tradier API key not provided - using mock data")
     
+    # Start mock data broadcasting task
+    mock_data_task = asyncio.create_task(broadcast_mock_data())
+    logger.info("Mock data broadcasting started")
+    
     yield
     
     # Shutdown
     logger.info("Shutting down DataHub server...")
+    mock_data_task.cancel()
     if tradier_connector:
         await tradier_connector.close()
 
@@ -516,6 +608,159 @@ async def delete_alert(alert_id: str):
         del active_alerts[alert_id]
         return {"status": "deleted"}
     raise HTTPException(status_code=404, detail="Alert not found")
+
+
+# ============================================================================
+# Trading API Endpoints
+# ============================================================================
+
+# Mock data stores for development
+mock_account = Account(
+    account_id="test_account_001",
+    broker="tradier",
+    account_type="margin",
+    total_equity=50000.0,
+    cash_balance=25000.0,
+    buying_power=100000.0,
+    day_trade_buying_power=75000.0,
+    day_pnl=1250.0,
+    total_pnl=8750.0,
+    is_active=True,
+    pattern_day_trader=False
+)
+
+mock_positions = [
+    Position(
+        symbol="MNQ1!",
+        account_id="test_account_001",
+        quantity=2.0,
+        avg_price=17850.0,
+        market_value=35800.0,
+        day_pnl=150.0,
+        total_pnl=300.0
+    ),
+    Position(
+        symbol="ES1!",
+        account_id="test_account_001",
+        quantity=-1.0,
+        avg_price=4750.0,
+        market_value=4725.0,
+        day_pnl=-25.0,
+        total_pnl=25.0
+    )
+]
+
+mock_orders = [
+    Order(
+        id="order_001",
+        broker_order_id="TRAD_12345",
+        symbol="NQ1!",
+        order_type="limit",
+        side="buy",
+        quantity=1.0,
+        price=17900.0,
+        status="pending",
+        account_id="test_account_001"
+    ),
+    Order(
+        id="order_002",
+        broker_order_id="TRAD_12346",
+        symbol="ES1!",
+        order_type="market",
+        side="sell",
+        quantity=1.0,
+        status="filled",
+        filled_quantity=1.0,
+        avg_fill_price=4752.0,
+        account_id="test_account_001"
+    )
+]
+
+@app.get("/api/account")
+async def get_account():
+    """Get account information"""
+    try:
+        # For now, return mock data. In production, this would fetch from broker
+        return mock_account.dict()
+    except Exception as e:
+        logger.error(f"Error fetching account: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/positions")
+async def get_positions():
+    """Get current positions"""
+    try:
+        # For now, return mock data. In production, this would fetch from broker
+        return [pos.dict() for pos in mock_positions]
+    except Exception as e:
+        logger.error(f"Error fetching positions: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/orders")
+async def get_orders(limit: int = 50):
+    """Get recent orders"""
+    try:
+        # For now, return mock data. In production, this would fetch from broker
+        orders = mock_orders[:limit]
+        return [order.dict() for order in orders]
+    except Exception as e:
+        logger.error(f"Error fetching orders: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/orders")
+async def submit_order(order_request: dict):
+    """Submit a new order"""
+    try:
+        # Create order from request
+        order = Order(
+            symbol=order_request.get('symbol'),
+            order_type=order_request.get('type', 'market'),
+            side=order_request.get('side'),
+            quantity=order_request.get('quantity'),
+            price=order_request.get('price'),
+            account_id="test_account_001"
+        )
+        
+        # Add to mock orders (in production, submit to broker)
+        mock_orders.insert(0, order)
+        
+        logger.info(f"Order submitted: {order.symbol} {order.side} {order.quantity}")
+        
+        return {
+            "order_id": order.id,
+            "status": "submitted",
+            "message": "Order submitted successfully"
+        }
+    except Exception as e:
+        logger.error(f"Error submitting order: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/market/status")
+async def get_market_status():
+    """Get current market status"""
+    try:
+        # Simple market hours check (9:30 AM - 4:00 PM ET)
+        from datetime import datetime, time
+        import pytz
+        
+        et = pytz.timezone('US/Eastern')
+        now = datetime.now(et)
+        market_open = time(9, 30)
+        market_close = time(16, 0)
+        
+        is_weekday = now.weekday() < 5  # Monday=0, Sunday=6
+        is_market_hours = market_open <= now.time() <= market_close
+        is_open = is_weekday and is_market_hours
+        
+        return {
+            "isOpen": is_open,
+            "session": "regular" if is_open else "closed",
+            "next_open": "2025-01-20 09:30:00 ET" if not is_open else None,
+            "timezone": "US/Eastern"
+        }
+    except Exception as e:
+        logger.error(f"Error getting market status: {e}")
+        raise HTTPException(status_code=500, detail={"isOpen": False, "session": "unknown"})
 
 
 # ============================================================================

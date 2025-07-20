@@ -43,30 +43,41 @@
 
 ## ⚡ **Quick Start - Get Trading in 5 Minutes**
 
-### 1. **Download & Install**
+> **🎉 STATUS UPDATE**: TraderTerminal is now **fully operational** with complete frontend-backend integration! All core features are working with real-time data streaming.
+
+### 1. **Clone and Setup**
 ```bash
-# macOS
-brew install --cask traderterminal
+# Clone the repository
+git clone https://github.com/grimmolf/trader-ops.git
+cd trader-ops
 
-# Linux  
-wget https://github.com/grimmolf/trader-ops/releases/latest/download/TraderTerminal.AppImage
-chmod +x TraderTerminal.AppImage && ./TraderTerminal.AppImage
-
-# Or build from source (see Installation section)
+# Install dependencies
+uv sync  # Python backend dependencies
+cd src/frontend && npm install  # Frontend dependencies
 ```
 
 ### 2. **Launch the Application**
 ```bash
-# The desktop app will open with a professional trading interface
-# No setup required - works with demo data out of the box
+# Terminal 1: Start backend server
+PYTHONPATH=/path/to/trader-ops uv run uvicorn src.backend.datahub.server:app --host localhost --port 8080 --reload
+
+# Terminal 2: Start frontend (from src/frontend/)
+npm run dev
 ```
 
-### 3. **Connect Your Broker (Optional)**
-- Go to **Settings** → **Broker Connection**  
-- Enter your Tradier API credentials (get free sandbox account)
-- Start trading with real market data
+### 3. **Access the Trading Platform**
+- **Desktop App**: Electron app launches automatically
+- **Web Access**: `http://localhost:5173` (development)
+- **API Server**: `http://localhost:8080` (backend)
+- **Real-time Updates**: WebSocket streaming active
 
-### 4. **Start Trading**
+### 4. **Current Demo Mode**
+- **Mock Data**: Platform runs with realistic trading scenarios
+- **Real-time Updates**: Account P&L, positions, and quotes update every 5 seconds
+- **All Features Working**: Order entry, portfolio tracking, backtesting all functional
+- **Broker Integration**: Ready for Tradier API (add credentials to enable live data)
+
+### 5. **Start Trading**
 - **Watch Markets**: Add symbols to your watchlist
 - **Analyze Charts**: Professional TradingView integration
 - **Place Orders**: Market, limit, and stop orders with one click
@@ -111,61 +122,65 @@ chmod +x TraderTerminal.AppImage && ./TraderTerminal.AppImage
 - **Memory**: 4GB RAM minimum, 8GB recommended
 - **Storage**: 2GB free space
 - **Internet**: Required for real-time data
+- **Python**: 3.11+ (for backend)
+- **Node.js**: 18+ (for frontend)
 
-### **Option 1: Download Release (Easiest)**
-1. Visit [Releases](https://github.com/grimmolf/trader-ops/releases)
-2. Download for your platform:
-   - **macOS**: `TraderTerminal.dmg`
-   - **Linux**: `TraderTerminal.AppImage`
-3. Install and run
+### **Current Setup: Development Build (Fully Functional)**
 
-### **Option 2: Build From Source**
+> **Note**: Pre-built releases coming soon. Current setup provides full functionality.
+
+#### **1. Clone and Install Dependencies**
 ```bash
 # Clone repository
 git clone https://github.com/grimmolf/trader-ops.git
 cd trader-ops
 
-# Install dependencies
+# Install Python backend dependencies
+uv sync  # or pip install -r requirements.txt
+
+# Install frontend dependencies
 cd src/frontend
 npm install
+cd ..
+```
 
-# Start desktop application
+#### **2. Start the Backend Server**
+```bash
+# From project root, start FastAPI backend
+PYTHONPATH=$(pwd) uv run uvicorn src.backend.datahub.server:app --host localhost --port 8080 --reload
+```
+
+#### **3. Start the Frontend Application**
+```bash
+# In a new terminal, from src/frontend/
+cd src/frontend
 npm run dev
 ```
 
-### **Option 3: With Backend Services**
-```bash
-# Full installation with real-time data
-git clone https://github.com/grimmolf/trader-ops.git
-cd trader-ops
-
-# Install Python backend
-uv sync  # or pip install -r requirements.txt
-
-# Start backend services
-uv run python -m src.backend.datahub.server &
-
-# Start desktop app
-cd src/frontend && npm run dev
-```
+#### **4. Verify Everything Works**
+- **Backend Health**: http://localhost:8080/health
+- **Frontend App**: Electron app launches automatically
+- **WebSocket**: Real-time data streaming every 5 seconds
+- **Trading Features**: All panels functional with mock data
 
 ---
 
 ## 🔑 **Configuration & Setup**
 
-### **1. Broker Connection (For Live Trading)**
+### **1. Current Demo Mode (Default)**
 
-**Tradier Setup** (Recommended):
+**✅ Fully Functional Demo**:
+- **Realistic Trading Scenarios**: Mock account with $50K equity, active positions
+- **Real-time Updates**: Account P&L, positions, quotes update every 5 seconds  
+- **All Features Working**: Order entry, portfolio tracking, backtesting all functional
+- **No Setup Required**: Works immediately after installation
+
+**🔗 Live Trading (Optional)**:
 1. Sign up at [Tradier](https://tradier.com) (free sandbox available)
 2. Get your API key from the developer portal
-3. In TraderTerminal: **Settings** → **Broker** → **Tradier**
-4. Enter your API key and account ID
-5. Toggle **Live Trading** when ready
-
-**Demo Mode** (Default):
-- Works immediately with simulated data
-- Perfect for learning the interface
-- Test strategies risk-free
+3. Add environment variables: `TRADIER_API_KEY` and `TRADIER_ACCOUNT_ID`
+4. Restart backend server to connect to live data
+5. Switch from mock to live data feeds
 
 ### **2. TradingView Integration**
 1. Get TradingView charting library (premium feature)

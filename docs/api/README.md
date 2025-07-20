@@ -22,9 +22,10 @@ The Trader Ops API is a FastAPI-based service providing:
 - **Portfolio management** functionality
 - **Alert system** for price notifications
 
-**Base URL**: `http://localhost:8000` (development)
+**Base URL**: `http://localhost:8080` (development)
 **API Version**: v1.0.0
 **Documentation**: `/docs` (Swagger UI) and `/redoc` (ReDoc)
+**WebSocket**: `ws://localhost:8080/stream` (real-time data)
 
 ## Authentication
 
@@ -59,7 +60,7 @@ GET /health
 
 #### TradingView UDF Configuration
 ```http
-GET /config
+GET /udf/config
 ```
 
 **Response**:
@@ -208,6 +209,117 @@ GET /search?query=apple
 
 ### Trading & Portfolio
 
+#### Get Account Information
+```http
+GET /api/account
+```
+
+**Response**:
+```json
+{
+  "account_id": "test_account_001",
+  "broker": "tradier",
+  "account_type": "margin",
+  "total_equity": 50000.0,
+  "cash_balance": 25000.0,
+  "buying_power": 100000.0,
+  "day_trade_buying_power": 75000.0,
+  "day_pnl": 1250.0,
+  "total_pnl": 8750.0,
+  "is_active": true,
+  "pattern_day_trader": false,
+  "last_updated": 1752992252
+}
+```
+
+#### Get Current Positions
+```http
+GET /api/positions
+```
+
+**Response**:
+```json
+[
+  {
+    "symbol": "MNQ1!",
+    "account_id": "test_account_001",
+    "quantity": 2.0,
+    "avg_price": 17850.0,
+    "market_value": 35800.0,
+    "day_pnl": 150.0,
+    "total_pnl": 300.0,
+    "opened_at": 1752992252,
+    "updated_at": 1752992252
+  }
+]
+```
+
+#### Get Order History
+```http
+GET /api/orders?limit=50
+```
+
+**Parameters**:
+- `limit` (optional): Maximum number of orders to return (default: 50)
+
+**Response**:
+```json
+[
+  {
+    "id": "order_001",
+    "broker_order_id": "TRAD_12345",
+    "symbol": "NQ1!",
+    "order_type": "limit",
+    "side": "buy",
+    "quantity": 1.0,
+    "price": 17900.0,
+    "status": "pending",
+    "account_id": "test_account_001",
+    "created_at": 1752992252
+  }
+]
+```
+
+#### Submit New Order
+```http
+POST /api/orders
+```
+
+**Request Body**:
+```json
+{
+  "symbol": "NQ1!",
+  "side": "buy",
+  "quantity": 1,
+  "type": "market",
+  "price": 17900.0
+}
+```
+
+**Response**:
+```json
+{
+  "order_id": "uuid-string",
+  "status": "submitted",
+  "message": "Order submitted successfully"
+}
+```
+
+#### Get Market Status
+```http
+GET /api/market/status
+```
+
+**Response**:
+```json
+{
+  "isOpen": false,
+  "session": "closed",
+  "next_open": "2025-01-20 09:30:00 ET",
+  "timezone": "US/Eastern"
+}
+```
+
 #### Create Alert
 ```http
 POST /alerts
@@ -352,7 +464,7 @@ GET /news?symbols=AAPL,TSLA&limit=5
 
 ### Connection
 ```javascript
-const ws = new WebSocket('ws://localhost:8000/stream');
+const ws = new WebSocket('ws://localhost:8080/stream');
 ```
 
 ### Message Format
@@ -430,6 +542,89 @@ All WebSocket messages follow this JSON structure:
     "quantity": 100,
     "price": 150.46,
     "timestamp": 1705751400
+  }
+}
+```
+
+### Account Updates
+```json
+{
+  "type": "account",
+  "data": {
+    "account_id": "test_account_001",
+    "total_equity": 50000.0,
+    "cash_balance": 25000.0,
+    "buying_power": 100000.0,
+    "day_pnl": 1250.0,
+    "total_pnl": 8750.0
+  },
+  "timestamp": "2025-07-20T17:45:00.000Z"
+}
+```
+
+### Position Updates
+```json
+{
+  "type": "positions",
+  "data": [
+    {
+      "symbol": "MNQ1!",
+      "quantity": 2.0,
+      "avg_price": 17850.0,
+      "day_pnl": 150.0,
+      "total_pnl": 300.0
+    }
+  ],
+  "timestamp": "2025-07-20T17:45:00.000Z"
+}
+```
+
+### Multiple Quote Updates
+```json
+{
+  "type": "quotes",
+  "data": [
+    {
+      "symbol": "MNQ1!",
+      "price": 17875.0,
+      "change": 25.0,
+      "change_percent": 0.14,
+      "volume": 5432,
+      "timestamp": 1752992386
+    },
+    {
+      "symbol": "ES1!",
+      "price": 4765.0,
+      "change": 15.0,
+      "change_percent": 0.32,
+      "volume": 8901,
+      "timestamp": 1752992386
+    }
+  ],
+  "timestamp": "2025-07-20T17:45:00.000Z"
+}
+```
+
+### Order Status Updates
+```json
+{
+  "type": "order_update",
+  "data": {
+    "orderId": "order_001",
+    "status": "filled",
+    "filled_quantity": 1.0,
+    "avg_fill_price": 17900.0
+  }
+}
+```
+
+### Market Status Updates
+```json
+{
+  "type": "market_status",
+  "data": {
+    "isOpen": true,
+    "session": "regular"
   }
 }
 ```
@@ -599,7 +794,7 @@ X-RateLimit-Reset: 1705751460
 
 ```javascript
 // 1. Connect to WebSocket
-const ws = new WebSocket('ws://localhost:8000/stream');
+const ws = new WebSocket('ws://localhost:8080/stream');
 
 // 2. Search for symbol
 const searchResponse = await fetch('/search?query=apple');
@@ -612,8 +807,8 @@ const symbolInfo = await infoResponse.json();
 
 // 4. Subscribe to real-time data
 ws.send(JSON.stringify({
-  type: 'subscribe',
-  symbol: symbol
+  action: 'subscribe',
+  symbols: [symbol]
 }));
 
 // 5. Handle real-time quotes
@@ -649,7 +844,7 @@ const historicalData = await historyResponse.json();
 // Initialize TradingView widget with UDF
 new TradingView.widget({
   symbol: 'AAPL',
-  datafeed: new UDFCompatibleDatafeed('http://localhost:8000'),
+  datafeed: new UDFCompatibleDatafeed('http://localhost:8080'),
   container_id: 'tradingview_chart',
   library_path: '/charting_library/',
   // ... other widget options
@@ -662,25 +857,25 @@ class UDFCompatibleDatafeed {
   }
 
   onReady(callback) {
-    fetch(`${this.baseUrl}/config`)
+    fetch(`${this.baseUrl}/udf/config`)
       .then(response => response.json())
       .then(callback);
   }
 
   searchSymbols(userInput, exchange, symbolType, onResultReadyCallback) {
-    fetch(`${this.baseUrl}/search?query=${userInput}`)
+    fetch(`${this.baseUrl}/udf/search?query=${userInput}`)
       .then(response => response.json())
       .then(onResultReadyCallback);
   }
 
   resolveSymbol(symbolName, onSymbolResolvedCallback) {
-    fetch(`${this.baseUrl}/symbol_info?symbol=${symbolName}`)
+    fetch(`${this.baseUrl}/udf/symbols?symbol=${symbolName}`)
       .then(response => response.json())
       .then(onSymbolResolvedCallback);
   }
 
   getBars(symbolInfo, resolution, from, to, onHistoryCallback) {
-    fetch(`${this.baseUrl}/history?symbol=${symbolInfo.ticker}&resolution=${resolution}&from=${from}&to=${to}`)
+    fetch(`${this.baseUrl}/udf/history?symbol=${symbolInfo.ticker}&resolution=${resolution}&from=${from}&to=${to}`)
       .then(response => response.json())
       .then(data => {
         if (data.s === 'ok') {
