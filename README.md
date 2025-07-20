@@ -11,9 +11,9 @@
 
 ---
 
-## 🚀 **NEW: Multi-Broker Integration Complete!**
+## 🚀 **NEW: Professional Trade Journaling + Multi-Broker Integration!**
 
-**🎉 MAJOR MILESTONE**: TraderTerminal now supports **4 major brokers** with production-ready integrations:
+**🎉 MAJOR MILESTONES**: TraderTerminal now includes **automated trade journaling** with rich analytics PLUS **4 major brokers** with production-ready integrations:
 
 ### **✅ Integrated Brokers**
 - **🏦 Charles Schwab**: Stocks, ETFs, Options (Real-time data + Trading)
@@ -26,6 +26,7 @@
 - **Real-Time Data Aggregation**: Live quotes from multiple feeds
 - **Cross-Platform Portfolio**: Unified view of all your accounts
 - **Risk Management**: Funded account rules and position monitoring
+- **Professional Trade Journaling**: Automated logging with rich analytics
 - **Single Interface**: One platform, multiple brokers, maximum opportunity
 
 **💰 Total Cost**: $41/month vs $24,000/year for Bloomberg Terminal (99.8% savings)
@@ -47,13 +48,23 @@
 - **Risk Management**: Built-in position sizing, stop-losses, and portfolio limits
 - **Strategy Templates**: Pre-built momentum and mean-reversion strategies
 
-### 🧪 **Paper Trading System (NEW!)**
+### 🧪 **Paper Trading System**
 - **Multiple Execution Modes**: Broker sandbox, internal simulator, and hybrid environments
 - **Realistic Market Simulation**: Dynamic slippage, commission modeling, and market conditions
 - **Professional Dashboard**: Real-time account management with performance analytics
 - **TradingView Integration**: Test Pine Script strategies risk-free with webhook alerts
 - **Performance Tracking**: Win rate, profit factor, drawdown analysis, and trade statistics
 - **Account Management**: Multiple paper accounts with reset capabilities and position monitoring
+
+### 📝 **Professional Trade Journaling (NEW!)**
+- **Automated Trade Logging**: Every trade automatically captured from live, paper, and strategy execution
+- **TradeNote Integration**: Complete professional trade journal with MongoDB backend
+- **Performance Analytics**: 20+ key metrics including Sharpe ratio, profit factor, and drawdown analysis
+- **Calendar Heat-Map**: Visual P&L calendar with daily performance color-coding
+- **Multi-Account Support**: Separate journaling for live, paper, and funded accounts
+- **Rich Insights**: Best/worst trading days, consecutive win/loss streaks, and commission analysis
+- **Export Capabilities**: Trade data export for tax reporting and compliance
+- **Background Processing**: Non-blocking trade logging with intelligent batch uploads
 
 ### 📈 **Advanced Market Analysis**
 - **Multi-Asset Support**: Stocks, options, futures, and crypto (expandable)
@@ -123,10 +134,21 @@ npm run dev
 ./deployment/scripts/dev-compose.sh status
 ```
 
-### 3. **Access the Trading Platform**
+### 3. **Set Up Trade Journaling (Optional)**
+```bash
+# Start TradeNote trade journal services
+./deployment/scripts/tradenote-setup.sh development setup
+
+# Services available at:
+# - TradeNote: http://localhost:8082
+# - MongoDB: localhost:27017
+```
+
+### 4. **Access the Trading Platform**
 - **Desktop App**: Electron app launches automatically
 - **Web Access**: `http://localhost:5173` (development)
 - **API Server**: `http://localhost:8080` (backend)
+- **TradeNote Journal**: `http://localhost:8082` (if enabled)
 - **Real-time Updates**: WebSocket streaming active
 
 ### 4. **Production-Ready Multi-Broker Trading**

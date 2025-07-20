@@ -12,6 +12,7 @@ Architecture: Kairos/TradingView -> Webhook -> Execution Engine -> Broker APIs
 """
 
 import asyncio
+import json
 import logging
 import time
 from typing import Dict, List, Optional, Any, Callable
@@ -117,6 +118,7 @@ class ExecutionEngine:
         self.pre_execution_hooks: List[Callable] = []
         self.post_execution_hooks: List[Callable] = []
         self.risk_check_hooks: List[Callable] = []
+        self.order_fill_hooks: List[Callable] = []
         
         # Redis for state persistence and pub/sub
         self.redis: Optional[redis.Redis] = None
@@ -500,6 +502,13 @@ class ExecutionEngine:
             
             logger.info(f"Order filled: {order.id} - {execution.quantity} @ {execution.price}")
             
+            # Run order fill hooks (e.g., TradeNote logging)
+            for hook in self.order_fill_hooks:
+                try:
+                    await hook(execution, order, status_data)
+                except Exception as hook_error:
+                    logger.error(f"Error in order fill hook: {hook_error}")
+            
         except Exception as e:
             logger.error(f"Error handling order fill: {e}")
     
@@ -659,6 +668,10 @@ class ExecutionEngine:
     def add_risk_check_hook(self, hook: Callable) -> None:
         """Add custom risk check hook"""
         self.risk_check_hooks.append(hook)
+    
+    def add_order_fill_hook(self, hook: Callable) -> None:
+        """Add order fill hook (called when orders are filled)"""
+        self.order_fill_hooks.append(hook)
     
     async def emergency_stop(self) -> None:
         """Emergency stop all trading"""

@@ -115,6 +115,83 @@ services:
           memory: 256M
           cpus: '0.2'
 
+  # MongoDB for TradeNote
+  tradenote-mongo:
+    image: mongo:6.0
+    container_name: traderterminal-tradenote-mongo
+    ports:
+      - "127.0.0.1:27017:27017"  # Bind to localhost only
+    volumes:
+      - tradenote_mongo_data:/data/db
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME_FILE=/run/secrets/tradenote_mongo_user
+      - MONGO_INITDB_ROOT_PASSWORD_FILE=/run/secrets/tradenote_mongo_password
+      - MONGO_INITDB_DATABASE=tradenote
+    secrets:
+      - tradenote_mongo_user
+      - tradenote_mongo_password
+    user: "1001:1001"
+    read_only: true
+    tmpfs:
+      - /tmp
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    restart: unless-stopped
+    networks:
+      - traderterminal
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: '1'
+        reservations:
+          memory: 256M
+          cpus: '0.2'
+
+  # TradeNote trade journal service
+  tradenote:
+    image: eleventrading/tradenote:latest
+    container_name: traderterminal-tradenote
+    ports:
+      - "127.0.0.1:8082:8080"  # Bind to localhost only
+    volumes:
+      - tradenote_data:/app/data
+    environment:
+      - MONGO_URI_FILE=/run/secrets/tradenote_mongo_uri
+      - TRADENOTE_DATABASE=tradenote
+      - APP_ID_FILE=/run/secrets/tradenote_app_id
+      - MASTER_KEY_FILE=/run/secrets/tradenote_master_key
+      - TRADENOTE_PORT=8080
+      - NODE_ENV=production
+    secrets:
+      - tradenote_mongo_uri
+      - tradenote_app_id
+      - tradenote_master_key
+    depends_on:
+      tradenote-mongo:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 60s
+      timeout: 15s
+      retries: 3
+      start_period: 120s
+    restart: unless-stopped
+    networks:
+      - traderterminal
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: '1'
+        reservations:
+          memory: 256M
+          cpus: '0.2'
+
   # Prometheus monitoring (optional)
   prometheus:
     image: prom/prometheus:latest
@@ -151,10 +228,27 @@ volumes:
     driver: local
   kairos_data:
     driver: local
+  tradenote_mongo_data:
+    driver: local
+  tradenote_data:
+    driver: local
   prometheus_config:
     driver: local
   prometheus_data:
     driver: local
+
+# Secrets for secure credential management
+secrets:
+  tradenote_mongo_user:
+    file: /etc/traderterminal/secrets/tradenote_mongo_user.txt
+  tradenote_mongo_password:
+    file: /etc/traderterminal/secrets/tradenote_mongo_password.txt
+  tradenote_mongo_uri:
+    file: /etc/traderterminal/secrets/tradenote_mongo_uri.txt
+  tradenote_app_id:
+    file: /etc/traderterminal/secrets/tradenote_app_id.txt
+  tradenote_master_key:
+    file: /etc/traderterminal/secrets/tradenote_master_key.txt
 
 # Secure network configuration
 networks:

@@ -40,6 +40,7 @@ from ..services.backtest_service import (
 from ..webhooks import tradingview_router
 from ..webhooks.tradingview_receiver import set_global_instances
 from ..trading.paper_api import router as paper_trading_router
+from ..strategies.api import router as strategy_performance_router, initialize_strategy_performance_api
 
 
 # Configuration
@@ -278,6 +279,13 @@ async def lifespan(app: FastAPI):
     set_global_instances(settings, tradovate_manager, connection_manager)
     logger.info("Webhook processor configured with global instances")
     
+    # Initialize strategy performance API
+    try:
+        await initialize_strategy_performance_api()
+        logger.info("Strategy performance API initialized")
+    except Exception as e:
+        logger.error(f"Failed to initialize strategy performance API: {e}")
+    
     # Start mock data broadcasting task
     mock_data_task = asyncio.create_task(broadcast_mock_data())
     logger.info("Mock data broadcasting started")
@@ -316,6 +324,9 @@ app.include_router(tradingview_router)
 
 # Include paper trading router
 app.include_router(paper_trading_router)
+
+# Include strategy performance router
+app.include_router(strategy_performance_router)
 
 
 # Health check

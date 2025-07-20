@@ -1,5 +1,6 @@
-# TraderTerminal Development Compose Configuration
+# TraderTerminal Development Compose Configuration  
 # Simplified setup for development with hot reload and debugging capabilities
+# Includes TradeNote integration for automated trade journaling
 version: '3.8'
 
 services:
@@ -98,6 +99,56 @@ services:
     profiles:
       - utils
 
+  # MongoDB for TradeNote
+  tradenote-mongo:
+    image: mongo:6.0
+    container_name: traderterminal-tradenote-mongo-dev
+    ports:
+      - "27017:27017"
+    volumes:
+      - tradenote_mongo_data:/data/db
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=tradenote
+      - MONGO_INITDB_ROOT_PASSWORD=tradenote123
+      - MONGO_INITDB_DATABASE=tradenote
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    restart: unless-stopped
+    networks:
+      - traderterminal
+
+  # TradeNote trade journal service
+  tradenote:
+    image: eleventrading/tradenote:latest
+    container_name: traderterminal-tradenote-dev
+    ports:
+      - "8082:8080"
+    volumes:
+      - tradenote_data:/app/data
+    environment:
+      - MONGO_URI=mongodb://tradenote:tradenote123@tradenote-mongo:27017/tradenote?authSource=admin
+      - TRADENOTE_DATABASE=tradenote
+      - APP_ID=traderterminal_dev_123
+      - MASTER_KEY=traderterminal_master_dev_456
+      - TRADENOTE_PORT=8080
+      - NODE_ENV=development
+    depends_on:
+      tradenote-mongo:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    restart: unless-stopped
+    networks:
+      - traderterminal
+
 # Named volumes for persistent data
 volumes:
   redis_data:
@@ -105,6 +156,10 @@ volumes:
   datahub_data:
     driver: local
   kairos_data:
+    driver: local
+  tradenote_mongo_data:
+    driver: local
+  tradenote_data:
     driver: local
 
 # Custom network for service communication

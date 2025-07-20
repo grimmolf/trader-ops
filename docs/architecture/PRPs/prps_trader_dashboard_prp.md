@@ -1955,8 +1955,8 @@ export const useStrategyPerformanceStore = defineStore('strategyPerformance', ()
       }
     })
   }
-  
-  return {
+    
+    return {
     strategies,
     loading,
     error,
@@ -2669,5 +2669,89 @@ Would you like me to break down any specific section even further?
 +3. **Week 1**: Strategy performance monitoring with auto-rotation active
 +4. **Week 2**: Full platform with stocks/options via Schwab
 +5. **Week 3**: Packaged macOS app ready for daily use
+
+#### Step 0.7: Trade Journal Integration with TradeNote (Week 2)
+
+Leverage the open-source [TradeNote](https://github.com/Eleven-Trading/TradeNote) project to provide advanced trade journaling, tag-based analytics, and calendar heat-map performance visualization.
+
+##### Objective
+Create a seamless, privacy-first journal inside TraderTerminal where every live and paper trade is automatically logged to TradeNote, enabling rich analytics without rebuilding journaling features from scratch.
+
+##### Task 0.7.1: Containerize TradeNote
+```bash
+# New directory: docker/tradenote/
+# Add docker-compose.override.yml with TradeNote services
+services:
+  tradenote:
+    image: eleventrading/tradenote:latest
+    environment:
+      - MONGO_URI=mongodb://tradenote:tradenote@mongo:27017/tradenote?authSource=admin
+      - TRADENOTE_DATABASE=tradenote
+      - APP_ID=${TRADENOTE_APP_ID}
+      - MASTER_KEY=${TRADENOTE_MASTER_KEY}
+      - TRADENOTE_PORT=8080
+    ports:
+      - "8080:8080"
+    depends_on:
+      - mongo
+  mongo:
+    image: mongo:6.0
+    volumes:
+      - tradenote_data:/data/db
+volumes:
+  tradenote_data:
+```
+
+##### Task 0.7.2: Authentication Bridge
+```python
+# Create src/backend/integrations/tradenote/client.py
+"""Minimal client for pushing trades to TradeNote via REST API"""
+class TradeNoteClient:
+    def __init__(self, base_url: str, master_key: str): ...
+    async def log_trade(self, trade: TradeResult): ...
+    async def get_calendar_heatmap(self, year: int): ...
+```
+
+##### Task 0.7.3: Trade Logger Hook
+Hook into the Order Execution layer (live & paper) and send every fill to TradeNote:
+```python
+# Update order execution pipelines
+await tradenote_client.log_trade(to_tradenote_format(fill))
+```
+
+##### Task 0.7.4: Calendar Performance Widget
+```vue
+<!-- Create src/frontend/renderer/components/TradeCalendar.vue -->
+<template>
+  <div class="trade-calendar">
+    <vue-cal-heatmap :data="heatmapData" />
+  </div>
+</template>
+```
+
+##### Task 0.7.5: Sync & Backfill Script
+```bash
+# scripts/backfill_trades_to_tradenote.sh
+python -m trader_ops.sync.backfill --start 2023-01-01 --end today
+```
+
+##### Task 0.7.6: Documentation
+Add `docs/TRADE_JOURNAL.md` covering local TradeNote setup, credentials, and backup strategy.
+
+##### Environment Variables
+```env
+# TradeNote
+TRADENOTE_BASE_URL=http://localhost:8080
+TRADENOTE_APP_ID=changeme
+TRADENOTE_MASTER_KEY=changeme
+```
+
+---
+
+### Critical Path Update
+Insert "Trade Journal Integration" after Strategy Performance Monitoring.
+
+### Timeline Update
+Add Week 2 Day 4-5 for TradeNote containerization and data sync.
 
 

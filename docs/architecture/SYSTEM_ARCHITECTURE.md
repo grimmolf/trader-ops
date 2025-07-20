@@ -194,6 +194,8 @@ Kairos Strategy → Webhook Alert → DataHub → Execution Engine → Risk Chec
       ↓              ↓              ↓            ↓              ↓           ↓
    YAML Config   HTTP POST      AlertEvent   Order Creation  Validation   Order Fill
    Cron Timer    JSON Payload   Processing   Position Size   Risk Mgmt    Portfolio Update
+                                                                ↓
+                                                        TradeNote Logger
 ```
 
 ### Order Lifecycle Flow
@@ -202,6 +204,18 @@ Alert Event → Risk Validation → Position Sizing → Order Placement → Fill
      ↓              ↓                ↓               ↓               ↓
  Webhook Data   Account Check    Portfolio Opt    Broker API      Status Update
  Symbol/Side    Daily Limits     Allocation %     Order Submit    P&L Tracking
+                                                                      ↓
+                                                              TradeNote Integration
+```
+
+### Trade Journaling Flow
+```
+Execution Event → TradeNote Service → Data Conversion → Batch Queue → TradeNote API
+      ↓                  ↓                ↓               ↓             ↓
+  Live/Paper         Hook Handler     Format Transform  Background     MongoDB
+  Strategy Fill      Error Handling   Account Mapping   Processing     Storage
+                                                             ↓
+                                                      Analytics Update
 ```
 
 ## 🛠️ Technology Stack
@@ -228,6 +242,155 @@ Alert Event → Risk Validation → Position Sizing → Order Placement → Fill
 - **Type Hints**: Comprehensive type safety with mypy
 - **Systemd**: Service management and scheduling
 - **Git**: Version control with development logging
+
+## 📊 Trade Journal Integration
+
+### TradeNote Integration Overview
+
+The platform includes comprehensive TradeNote integration providing institutional-grade trade journaling and analytics. This integration captures all trading activity across live, paper, and strategy execution pipelines, providing automated trade logging with rich performance analytics.
+
+#### Architecture Components
+
+**Backend Integration (`src/backend/integrations/tradenote/`)**
+```python
+# Complete service layer for trade journaling
+class TradeNoteService:
+    def __init__(self, config: TradeNoteConfig)
+    async def log_live_execution(execution, account, strategy, notes)
+    async def log_paper_execution(fill, order, account, strategy, notes)
+    async def log_strategy_trade(trade_result, account, strategy, is_paper, notes)
+    async def bulk_upload_trades(trades: List[TradeNoteTradeData])
+    async def sync_account_history(account_name, trades)
+```
+
+**Frontend Integration (`src/frontend/renderer/components/`)**
+- **TradeNotePanel.vue**: Main interface with calendar/analytics toggle
+- **TradeNoteCalendar.vue**: Heat-map calendar with P&L visualization
+- **TradeNoteAnalytics.vue**: Comprehensive performance metrics dashboard
+- **Pinia Store**: Reactive state management with caching and sync
+
+**Container Integration (`deployment/compose/docker-compose.dev.yml`)**
+- **TradeNote Service**: Complete containerized deployment
+- **MongoDB Database**: Persistent trade data storage
+- **Automated Setup**: Development and production configurations
+
+#### Data Integration Pipeline
+
+```python
+# Live Trading Integration
+async def execution_hook(execution: Execution):
+    await tradenote_service.log_live_execution(
+        execution=execution,
+        account_name="live_account",
+        strategy_name=execution.strategy,
+        notes=f"Broker: {execution.broker}"
+    )
+
+# Paper Trading Integration  
+async def paper_fill_hook(fill: Fill, order: PaperOrder):
+    await tradenote_service.log_paper_execution(
+        fill=fill,
+        order=order,
+        account_name="paper_account",
+        strategy_name=order.strategy,
+        notes=f"Slippage: ${fill.slippage:.4f}"
+    )
+
+# Strategy Performance Integration
+async def strategy_trade_hook(trade_result: TradeResult):
+    await tradenote_service.log_strategy_trade(
+        trade_result=trade_result,
+        account_name=trade_result.account,
+        strategy_name=trade_result.strategy,
+        is_paper=trade_result.is_simulation,
+        notes=trade_result.notes
+    )
+```
+
+#### Analytics Dashboard Features
+
+**Performance Metrics (20+ indicators)**
+- Total P&L, Win Rate, Average Trade Size
+- Sharpe Ratio, Profit Factor, Maximum Drawdown
+- Best/Worst Day, Consecutive Wins/Losses
+- Trading Activity, Commission Analysis
+- Paper vs Live Trade Breakdown
+
+**Calendar Heat-map**
+- Daily P&L visualization with color coding
+- Interactive tooltips with trade details
+- Multiple timeframe views (1m, 3m, 6m, 1y)
+- Click-through to detailed TradeNote analysis
+
+**Real-time Synchronization**
+- Automatic trade logging across all pipelines
+- Background batch processing (configurable)
+- Smart caching with 5-minute expiry
+- Connection status monitoring and retry logic
+
+#### Configuration Management
+
+```typescript
+// TradeNote Configuration
+interface TradeNoteConfig {
+  base_url: string           // TradeNote instance URL
+  app_id: string            // Parse Server application ID
+  master_key: string        // Parse Server master key
+  enabled: boolean          // Integration toggle
+  auto_sync: boolean        // Automatic sync every 5 minutes
+  timeout_seconds: number   // API request timeout
+  retry_attempts: number    // Failed request retry count
+}
+
+// Secure credential storage
+const config = await loadConfig()  // Electron secure storage
+await saveConfig(updatedConfig)    // Encrypted persistence
+```
+
+#### Deployment Options
+
+**Development Setup**
+```bash
+# Start TradeNote services
+./deployment/scripts/tradenote-setup.sh development setup
+
+# Services available at:
+# - MongoDB: localhost:27017
+# - TradeNote: http://localhost:8082
+# - Credentials: Plain text for development
+```
+
+**Production Deployment**
+```bash
+# Production setup with secure secrets
+./deployment/scripts/tradenote-setup.sh production setup
+
+# Features:
+# - Encrypted credential storage (/etc/traderterminal/secrets/)
+# - Secure MongoDB authentication
+# - Production-grade container configuration
+# - Health monitoring and logging
+```
+
+#### Performance Optimization
+
+**Batch Processing**
+- Configurable batch sizes (default: 10 trades)
+- Background queue processing every 30 seconds
+- Non-blocking trade execution pipeline
+- Automatic retry for failed uploads
+
+**Intelligent Caching**
+- 5-minute cache for analytics data
+- Smart cache invalidation on data updates
+- Reduced API calls for frequently accessed data
+- Offline-capable with cache fallback
+
+**Error Handling**
+- Comprehensive connection monitoring
+- Automatic reconnection with exponential backoff
+- Trade queue persistence across connection failures
+- User-friendly error reporting with retry options
 
 ## ⚙️ Strategy Automation
 
@@ -523,12 +686,15 @@ async def health_check():
 - **Tradier Integration**: Full API wrapper with WebSocket streaming  
 - **Execution Engine**: Advanced trading with risk management
 - **Strategy Automation**: Kairos configurations with systemd integration
+- **TradeNote Integration**: Complete automated trade journaling with analytics
+- **Frontend Dashboard**: Electron app with Vue 3 and professional UI components
+- **Container Deployment**: Production-ready Docker/Podman infrastructure
 - **Documentation**: Comprehensive architecture and setup guides
 
 ### 🚧 In Progress  
-- **Frontend Development**: Electron app with TradingView widget (pending)
-- **IPC Implementation**: Symbol selection and chart integration (pending)
-- **Testing Suite**: Unit and E2E tests with Playwright (pending)
+- **Advanced Analytics**: Chart.js integration for visual P&L analysis
+- **Multi-Account Support**: Simultaneous journaling across multiple accounts
+- **Testing Suite**: Unit and E2E tests with Playwright
 
 ### 📋 Planned Features
 - **Chronos Integration**: Flask listener for webhook execution  

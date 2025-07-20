@@ -7,6 +7,7 @@ validates payloads, and routes to appropriate execution systems.
 
 import json
 import logging
+import random
 import time
 from typing import Optional
 
@@ -20,6 +21,9 @@ from .security import (
     webhook_rate_limiter,
     validate_webhook_headers
 )
+from ..strategies.performance_tracker import get_strategy_tracker
+from ..strategies.models import TradingMode
+from decimal import Decimal
 
 logger = logging.getLogger(__name__)
 
@@ -175,7 +179,54 @@ async def process_tradingview_alert(
     try:
         logger.info(f"Processing alert {alert_id}: {alert.symbol} {alert.action} {alert.quantity}")
         
-        # Step 1: Determine target broker/account based on account_group
+        # Step 1: Check strategy performance and override account routing if needed
+        original_account_group = alert.account_group
+        strategy_override_applied = False
+        
+        if alert.strategy:
+            strategy_tracker = get_strategy_tracker()
+            strategy = await strategy_tracker.get_strategy(alert.strategy)
+            
+            if strategy:
+                logger.info(f"Strategy '{alert.strategy}' status: mode={strategy.current_mode}, at_risk={strategy.is_at_risk}")
+                
+                # If strategy is at risk in live mode, route to paper trading
+                if strategy.current_mode == TradingMode.LIVE and strategy.is_at_risk:
+                    paper_account_group = f"paper_{original_account_group}"
+                    alert.account_group = paper_account_group
+                    strategy_override_applied = True
+                    
+                    logger.warning(
+                        f"Strategy '{alert.strategy}' is at risk - routing alert to paper trading "
+                        f"(changed from '{original_account_group}' to '{paper_account_group}')"
+                    )
+                
+                # If strategy is in paper mode, ensure it routes to paper
+                elif strategy.current_mode == TradingMode.PAPER:
+                    if not alert.account_group.startswith("paper_"):
+                        paper_account_group = f"paper_{original_account_group}"
+                        alert.account_group = paper_account_group
+                        strategy_override_applied = True
+                        
+                        logger.info(
+                            f"Strategy '{alert.strategy}' is in paper mode - routing to paper trading "
+                            f"(changed from '{original_account_group}' to '{paper_account_group}')"
+                        )
+                
+                # If strategy is suspended, reject the alert
+                elif strategy.current_mode == TradingMode.SUSPENDED:
+                    error_msg = f"Strategy '{alert.strategy}' is suspended - rejecting alert"
+                    logger.warning(error_msg)
+                    return AlertProcessingResult(
+                        alert_id=alert_id,
+                        status="rejected",
+                        rejection_reason=error_msg
+                    )
+            else:
+                # Strategy not registered - log warning but continue with original routing
+                logger.warning(f"Strategy '{alert.strategy}' not registered in performance tracker")
+        
+        # Step 2: Determine target broker/account based on (potentially modified) account_group
         broker_connector = _get_broker_connector(alert.account_group)
         if not broker_connector:
             error_msg = f"No broker connector configured for account group: {alert.account_group}"
@@ -186,7 +237,7 @@ async def process_tradingview_alert(
                 rejection_reason=error_msg
             )
         
-        # Step 2: Validate against funded account rules if applicable
+        # Step 3: Validate against funded account rules if applicable
         if _is_funded_account(alert.account_group):
             can_trade, rejection_reason = await _check_funded_account_rules(alert)
             if not can_trade:
@@ -197,15 +248,19 @@ async def process_tradingview_alert(
                     rejection_reason=rejection_reason
                 )
         
-        # Step 3: Convert alert to execution request
+        # Step 4: Convert alert to execution request
         execution_request = alert.to_execution_request()
         
-        # Step 4: Execute trade
+        # Step 5: Execute trade
         execution_result = await broker_connector.execute_alert(execution_request)
         
-        # Step 5: Process execution result
+        # Step 6: Process execution result
         if execution_result.get("status") == "success":
             logger.info(f"Alert {alert_id} executed successfully: {execution_result}")
+            
+            # Record trade result for strategy performance tracking
+            if alert.strategy:
+                await _record_strategy_trade_result(alert, execution_result, strategy_override_applied)
             
             # Broadcast update to connected clients
             await _broadcast_execution_update(alert, execution_result)
@@ -290,6 +345,81 @@ async def _check_funded_account_rules(alert: TradingViewAlert) -> tuple[bool, Op
     # This will connect to TopstepX API when available
     logger.info(f"Checking funded account rules for {alert.account_group}")
     return True, None
+
+
+async def _record_strategy_trade_result(
+    alert: TradingViewAlert, 
+    execution_result: dict, 
+    strategy_override_applied: bool
+):
+    """
+    Record completed trade result in strategy performance tracker.
+    
+    This function extracts trade details from execution result and records them
+    for strategy performance monitoring and auto-rotation logic.
+    """
+    try:
+        strategy_tracker = get_strategy_tracker()
+        
+        # Extract trade details from execution result
+        fill_data = execution_result.get("fill", {})
+        entry_price = Decimal(str(fill_data.get("price", 0)))
+        
+        # TODO: This is a simplified implementation for demonstration
+        # In production, this would need proper position tracking to match
+        # entry/exit trades and calculate actual realized P&L
+        
+        if entry_price > 0:
+            # TODO: Replace with actual exit price from position tracking
+            # For now, simulate a basic trade outcome for testing
+            price_movement = Decimal(str(random.uniform(-0.01, 0.01))) * entry_price
+            exit_price = entry_price + price_movement
+            
+            # Calculate basic P&L
+            side = "long" if alert.action.lower() in ["buy", "long"] else "short"
+            commission = Decimal(str(fill_data.get("commission", 2.5)))  # Typical futures commission
+            
+            logger.info(
+                f"Recording trade for strategy '{alert.strategy}': "
+                f"{alert.symbol} {side} {alert.quantity} @ {entry_price}->{exit_price}"
+                f"{' (OVERRIDE APPLIED)' if strategy_override_applied else ''}"
+            )
+            
+            # Record the trade
+            mode_transition = await strategy_tracker.record_trade(
+                strategy_id=alert.strategy,
+                symbol=alert.symbol,
+                entry_price=entry_price,
+                exit_price=exit_price,
+                quantity=alert.quantity,
+                side=side,
+                commission=commission,
+                trade_id=execution_result.get("order", {}).get("id")
+            )
+            
+            # If a mode transition occurred, log it
+            if mode_transition:
+                logger.warning(
+                    f"Strategy '{alert.strategy}' mode transition: "
+                    f"{mode_transition.from_mode} -> {mode_transition.to_mode} "
+                    f"Reason: {mode_transition.reason}"
+                )
+                
+                # Broadcast mode transition to connected clients
+                if _connection_manager:
+                    await _connection_manager.broadcast_to_all({
+                        "type": "strategy_mode_change",
+                        "data": {
+                            "strategy_id": alert.strategy,
+                            "from_mode": mode_transition.from_mode,
+                            "to_mode": mode_transition.to_mode,
+                            "reason": mode_transition.reason,
+                            "timestamp": time.time()
+                        }
+                    })
+        
+    except Exception as e:
+        logger.error(f"Error recording strategy trade result for '{alert.strategy}': {e}")
 
 
 async def _broadcast_execution_update(alert: TradingViewAlert, execution_result: dict):
