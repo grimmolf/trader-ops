@@ -46,7 +46,14 @@
 - **Pine Script Backtesting**: Test your strategies across years of historical data
 - **Risk Management**: Built-in position sizing, stop-losses, and portfolio limits
 - **Strategy Templates**: Pre-built momentum and mean-reversion strategies
-- **Paper Trading**: Test everything risk-free before going live
+
+### 🧪 **Paper Trading System (NEW!)**
+- **Multiple Execution Modes**: Broker sandbox, internal simulator, and hybrid environments
+- **Realistic Market Simulation**: Dynamic slippage, commission modeling, and market conditions
+- **Professional Dashboard**: Real-time account management with performance analytics
+- **TradingView Integration**: Test Pine Script strategies risk-free with webhook alerts
+- **Performance Tracking**: Win rate, profit factor, drawdown analysis, and trade statistics
+- **Account Management**: Multiple paper accounts with reset capabilities and position monitoring
 
 ### 📈 **Advanced Market Analysis**
 - **Multi-Asset Support**: Stocks, options, futures, and crypto (expandable)

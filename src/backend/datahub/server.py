@@ -39,6 +39,7 @@ from ..services.backtest_service import (
 )
 from ..webhooks import tradingview_router
 from ..webhooks.tradingview_receiver import set_global_instances
+from ..trading.paper_api import router as paper_trading_router
 
 
 # Configuration
@@ -312,6 +313,9 @@ app.add_middleware(
 
 # Include webhook router
 app.include_router(tradingview_router)
+
+# Include paper trading router
+app.include_router(paper_trading_router)
 
 
 # Health check

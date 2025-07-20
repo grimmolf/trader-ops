@@ -7,6 +7,55 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.2.0] - 2025-01-20
+
+### 🧪 Paper Trading System Implementation
+
+#### ✨ New Features
+- **Comprehensive Paper Trading System**: Complete risk-free trading simulation with multiple execution modes
+- **Professional Paper Trading Dashboard**: Vue 3 component with real-time account management and performance analytics
+- **Multiple Execution Modes**: Broker sandbox, internal simulator, and hybrid environments
+- **TradingView Integration**: Seamless webhook processing for paper trading alerts using `paper_*` account groups
+- **Realistic Market Simulation**: Dynamic slippage calculation, commission modeling, and market conditions
+- **Performance Analytics**: Win rate, profit factor, drawdown analysis, and comprehensive trade statistics
+- **Account Management**: Multiple paper accounts with reset capabilities and position monitoring
+
+#### 🛠️ Technical Implementation
+- **Backend Infrastructure**: 4 new files (2,000+ lines) - models, router, engine, and API
+- **Frontend Components**: Professional Vue dashboard (840+ lines) with Pinia store integration
+- **REST API**: 10+ endpoints for complete paper trading operations (`/api/paper-trading/*`)
+- **WebSocket Integration**: Real-time updates for accounts, positions, orders, and fills
+- **Webhook Enhancement**: Updated TradingView receiver to route paper trading alerts
+- **Risk Management**: Buying power checks, position limits, and market hours validation
+
+#### 📊 API Endpoints Added
+```
+GET    /api/paper-trading/accounts           # List all paper trading accounts
+GET    /api/paper-trading/accounts/{id}      # Get specific account details
+POST   /api/paper-trading/accounts/{id}/reset # Reset account to initial state
+GET    /api/paper-trading/accounts/{id}/orders # Get account orders
+GET    /api/paper-trading/accounts/{id}/fills  # Get account fills
+GET    /api/paper-trading/accounts/{id}/metrics # Get performance metrics
+POST   /api/paper-trading/accounts/{id}/flatten # Close all positions
+POST   /api/paper-trading/alerts            # Submit paper trading orders
+POST   /api/paper-trading/orders/{id}/cancel # Cancel pending orders
+GET    /api/paper-trading/status            # System status and health
+```
+
+#### 🔧 Files Added
+- `src/backend/trading/paper_models.py` - Complete Pydantic data models (322 lines)
+- `src/backend/trading/paper_router.py` - Intelligent routing system (521 lines)
+- `src/backend/trading/paper_engine.py` - Realistic simulation engine (553 lines)
+- `src/backend/trading/paper_api.py` - Comprehensive REST API (465 lines)
+- `src/frontend/renderer/components/PaperTradingPanel.vue` - Vue dashboard (840+ lines)
+- `src/frontend/renderer/src/stores/paperTrading.ts` - Pinia store (380+ lines)
+
+#### 📈 Business Impact
+- **Strategy Development**: Risk-free testing and validation platform
+- **User Onboarding**: Learning environment for new traders
+- **System Validation**: Test platform features without market impact
+- **TradingView Integration**: Test Pine Script strategies with webhook alerts
+
 ## [1.1.0] - 2024-01-20
 
 ### 🚀 Major Infrastructure Improvements

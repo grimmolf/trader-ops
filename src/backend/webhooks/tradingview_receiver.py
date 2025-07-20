@@ -252,6 +252,12 @@ def _get_broker_connector(account_group: str):
     # Normalize account group
     group = account_group.lower() if account_group else "main"
     
+    # Check for paper trading groups first
+    if group.startswith("paper_"):
+        from ..trading.paper_router import get_paper_trading_router
+        logger.info(f"Routing {account_group} to paper trading system")
+        return get_paper_trading_router()
+    
     # Route to Tradovate for futures and funded accounts
     futures_groups = ["main", "tradovate", "topstep", "apex", "tradeday", "fundedtrader"]
     if group in futures_groups:
