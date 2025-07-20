@@ -1,6 +1,6 @@
 # System Architecture
 
-Comprehensive architectural overview of the Trader Ops trading dashboard, including system design, component interactions, and data flow patterns.
+Comprehensive architectural overview of the Trader Dashboard, including system design, component interactions, and data flow patterns for automated trading with webhook-driven execution.
 
 ## 📋 Table of Contents
 
@@ -9,496 +9,568 @@ Comprehensive architectural overview of the Trader Ops trading dashboard, includ
 - [Component Architecture](#component-architecture)
 - [Data Flow](#data-flow)
 - [Technology Stack](#technology-stack)
+- [Strategy Automation](#strategy-automation)
+- [Risk Management](#risk-management)
 - [Deployment Architecture](#deployment-architecture)
 - [Security Architecture](#security-architecture)
 - [Performance Considerations](#performance-considerations)
 
 ## 🔍 Overview
 
-Trader Ops is a cross-platform desktop trading dashboard that combines real-time market data, advanced charting, and trading execution in a unified interface. The system follows a microservices-inspired architecture with clear separation between data services, presentation layers, and external integrations.
+The Trader Dashboard is a production-grade automated trading platform that combines real-time market data, TradingView charting, strategy automation via Kairos, and sophisticated risk management. The system follows an event-driven architecture with webhook-based strategy execution and comprehensive risk controls.
 
 ### Key Design Principles
-- **Modularity**: Clear separation of concerns between components
-- **Extensibility**: Plugin architecture for data feeds and trading platforms
-- **Performance**: Optimized for real-time data processing and UI responsiveness
-- **Security**: Secure handling of authentication and sensitive trading data
-- **Reliability**: Robust error handling and graceful degradation
+- **Event-Driven**: Webhook-based strategy automation with real-time processing
+- **Risk-First**: Multi-layer risk management at strategy, portfolio, and account levels  
+- **Modularity**: Clear separation between data services, strategy automation, and execution
+- **Performance**: Optimized for sub-100ms real-time data processing and execution
+- **Security**: Secure API key management and webhook validation
+- **Reliability**: Comprehensive error handling with fallback mechanisms
 
 ## 🏗️ High-Level Architecture
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│                    Trader Ops Desktop App                   │
-├─────────────────────────────────────────────────────────────┤
-│  ┌─────────────────┐    ┌─────────────────┐                │
-│  │   Electron      │    │   FastAPI       │                │
-│  │   Frontend      │◄──►│   Backend       │                │
-│  │                 │    │                 │                │
-│  │ ├─ Main Process │    │ ├─ API Server   │                │
-│  │ ├─ Renderer     │    │ ├─ WebSocket    │                │
-│  │ ├─ Vue.js UI    │    │ ├─ UDF Protocol │                │
-│  │ └─ TradingView  │    │ └─ Data Feeds   │                │
-│  └─────────────────┘    └─────────────────┘                │
-└─────────────────────────────────────────────────────────────┘
-                                 │
-                ┌────────────────┼────────────────┐
-                │                │                │
-        ┌───────▼───────┐ ┌──────▼──────┐ ┌──────▼──────┐
-        │   Tradier     │ │ TradingView │ │   Future    │
-        │     API       │ │  Services   │ │ Integrations│
-        │               │ │             │ │             │
-        │ ├─ Market Data│ │ ├─ Auth API │ │ ├─ Tradovate│
-        │ ├─ Trading    │ │ ├─ Widget   │ │ ├─ CCXT     │
-        │ └─ WebSocket  │ │ └─ Sessions │ │ └─ LEAN     │
-        └───────────────┘ └─────────────┘ └─────────────┘
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                        Trader Dashboard Platform                            │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                             │
+│  ┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐         │
+│  │     Kairos      │    │    DataHub      │    │  Execution      │         │
+│  │   Strategies    │───►│   Server        │───►│   Engine        │         │
+│  │                 │    │                 │    │                 │         │
+│  │ ├─ Momentum     │    │ ├─ FastAPI      │    │ ├─ Risk Mgmt    │         │
+│  │ ├─ Mean Rev     │    │ ├─ WebSocket    │    │ ├─ Position     │         │
+│  │ ├─ Rebalance    │    │ ├─ UDF Protocol │    │ ├─ Portfolio    │         │
+│  │ └─ Custom       │    │ ├─ Webhooks     │    │ ├─ Order Mgmt   │         │
+│  └─────────────────┘    │ └─ Redis Cache  │    │ └─ Monitoring   │         │
+│                         └─────────────────┘    └─────────────────┘         │
+│                                  │                       │                 │
+│  ┌─────────────────┐             │              ┌────────▼────────┐        │
+│  │   Frontend      │◄────────────┤              │    Tradier      │        │
+│  │   (Pending)     │             │              │     API         │        │
+│  │                 │             │              │                 │        │
+│  │ ├─ Electron     │             │              │ ├─ Market Data  │        │
+│  │ ├─ TradingView  │             │              │ ├─ Orders       │        │
+│  │ ├─ Dashboard    │             │              │ ├─ Positions    │        │
+│  │ └─ Monitoring   │             │              │ └─ Account      │        │
+│  └─────────────────┘             │              └─────────────────┘        │
+│                                   │                                        │
+└─────────────────────────────────┼─┼────────────────────────────────────────┘
+                                  │ │
+                    ┌─────────────┼─┼─────────────┐
+                    │             │ │             │
+            ┌───────▼──────┐ ┌────▼─▼────┐ ┌─────▼─────┐
+            │ TradingView  │ │   Redis    │ │  System   │
+            │  Webhooks    │ │  Cache     │ │  Services │
+            │              │ │            │ │           │
+            │ ├─ Alerts    │ │ ├─ Pub/Sub │ │ ├─ Systemd│
+            │ ├─ Signals   │ │ ├─ State   │ │ ├─ Logging│
+            │ └─ Custom    │ │ └─ Session │ │ └─ Monitor│
+            └──────────────┘ └────────────┘ └───────────┘
 ```
 
-### System Boundaries
-- **Desktop Application**: Self-contained Electron app with embedded backend
-- **External APIs**: Third-party services for data and authentication
-- **User Environment**: Local machine with network connectivity
+## 🔧 Component Architecture
 
-## 🧩 Component Architecture
+### Core Backend Services
 
-### Frontend Layer (Electron + Vue.js)
+#### DataHub Server (`src/backend/datahub/server.py`)
+Central data aggregation and distribution service built with FastAPI:
 
-#### Main Process
-```typescript
-// src/frontend/main.ts
-class MainProcess {
-  - windowManager: BrowserWindowManager
-  - ipcHandler: IPCHandler
-  - menuBuilder: MenuBuilder
-  - updater: AutoUpdater
-  
-  + createWindow(): BrowserWindow
-  + handleIPC(channel: string, handler: Function): void
-  + setupMenus(): void
-}
+- **TradingView UDF Protocol**: Complete implementation of Universal Data Feed endpoints
+- **Real-Time Streaming**: WebSocket connections for live market data distribution  
+- **REST API**: RESTful endpoints for quotes, symbols, and market data
+- **Webhook Processing**: TradingView alert processing with background task handling
+- **CORS Support**: Cross-origin resource sharing for frontend integration
+
+**Key Endpoints**:
+```
+GET  /udf/config           # TradingView configuration
+GET  /udf/symbols          # Symbol metadata  
+GET  /udf/history          # Historical OHLCV data
+GET  /udf/search           # Symbol search
+GET  /api/v1/quotes        # Real-time quotes
+POST /webhook/tradingview  # Alert webhooks
+WS   /stream               # Real-time data streaming
 ```
 
-**Responsibilities**:
-- Application lifecycle management
-- Window creation and management
-- IPC communication coordination
-- Menu and system integration
-- Auto-updates and app distribution
+#### Execution Engine (`src/backend/trading/execution_engine.py`)
+Advanced trading execution with comprehensive risk management:
 
-#### Renderer Process
-```typescript
-// src/frontend/renderer/
-class RendererProcess {
-  - vueApp: VueApplication
-  - chartManager: TradingViewManager
-  - dataService: DataService
-  - stateManager: VuexStore
-  
-  + initializeApp(): void
-  + connectToBackend(): void
-  + handleRealTimeData(): void
-}
-```
+- **Webhook-Driven Processing**: Automated execution from Kairos/TradingView alerts
+- **Multi-Layer Risk Management**: Account, portfolio, and position-level risk checks
+- **Position Sizing**: Dynamic optimization based on portfolio allocation and risk
+- **Order Lifecycle Management**: Complete order tracking from placement to fill
+- **Performance Monitoring**: Real-time execution metrics and statistics
 
-**Components**:
-- **App.vue**: Root application component
-- **ChartContainer.vue**: TradingView widget wrapper
-- **SymbolSearch.vue**: Symbol search and selection
-- **DataPanel.vue**: Real-time quotes and market data
-- **SettingsPanel.vue**: Configuration and preferences
-
-#### TradingView Integration
-```typescript
-class TradingViewManager {
-  - widget: TradingViewWidget
-  - datafeed: UDFDatafeed
-  - authManager: AuthenticationManager
-  - mode: 'local' | 'authenticated'
-  
-  + createWidget(container: HTMLElement): void
-  + switchMode(mode: string): Promise<void>
-  + updateSymbol(symbol: string): void
-  + setupDatafeed(): UDFCompatibleDatafeed
-}
-```
-
-### Backend Layer (FastAPI)
-
-#### API Server
+**Risk Management Layers**:
 ```python
-# src/backend/server.py
-class DataHubServer:
-    - app: FastAPI
-    - connection_manager: WebSocketManager
-    - data_connectors: Dict[str, DataConnector]
-    - udf_handler: UDFProtocolHandler
-    
-    + start_server(): None
-    + register_routes(): None
-    + setup_middleware(): None
-    + handle_websocket(): None
+1. Strategy Level:    stop_loss, position_size, max_positions
+2. Portfolio Level:   concentration, correlation, allocation_limits  
+3. Account Level:     buying_power, daily_loss, leverage_limits
+4. System Level:      emergency_stops, circuit_breakers, volatility_filters
 ```
 
-**Core Endpoints**:
-- `/health` - Health monitoring
-- `/symbols` - Available trading symbols
-- `/quotes/{symbol}` - Real-time quotes
-- `/history` - Historical OHLCV data (UDF)
-- `/stream` - WebSocket real-time data
-- `/alerts` - Alert management
-- `/portfolio/{account}` - Portfolio data
+#### Tradier Connector (`src/backend/feeds/tradier.py`)
+Complete Tradier API integration with real-time capabilities:
 
-#### Data Models
+- **Market Data**: Real-time quotes, historical data, symbol search
+- **Trading Operations**: Order placement, cancellation, position tracking
+- **WebSocket Streaming**: Live market data with automatic reconnection
+- **Rate Limiting**: Respects API limits with intelligent throttling
+- **Error Handling**: Comprehensive error handling with retry logic
+
+### Data Models (`src/backend/models/`)
+
+#### Market Data Models
 ```python
-# src/backend/models.py
-@dataclass
-class Quote:
+class Candle(BaseModel):
+    ts: int       # Epoch timestamp (TradingView compatible)
+    o: float      # Open price
+    h: float      # High price  
+    l: float      # Low price
+    c: float      # Close price
+    v: float      # Volume
+
+class Quote(BaseModel):
     symbol: str
-    bid: float
-    ask: float
-    last: float
-    volume: int
     timestamp: int
-    change: float
-    change_percent: float
+    bid: Optional[float]
+    ask: Optional[float]
+    last: Optional[float]
+    volume: Optional[float]
+    change: Optional[float]
+    change_percent: Optional[float]
+```
 
-@dataclass  
-class Candle:
+#### Execution Models
+```python
+class Order(BaseModel):
+    id: str
+    symbol: str
+    order_type: OrderType
+    side: OrderSide
+    quantity: float
+    price: Optional[float]
+    status: OrderStatus
+    
+class Execution(BaseModel):
+    order_id: str
+    symbol: str
+    quantity: float
+    price: float
     timestamp: int
-    open: float
-    high: float
-    low: float
-    close: float
-    volume: int
+    commission: float
 ```
 
-#### WebSocket Manager
+#### Portfolio Models  
 ```python
-class ConnectionManager:
-    - active_connections: List[WebSocket]
-    - symbol_subscribers: Dict[str, List[WebSocket]]
-    - data_streams: Dict[str, DataStream]
+class Portfolio(BaseModel):
+    id: str
+    positions: List[PortfolioPosition]
+    cash_balance: float
+    total_value: float
+    risk_metrics: Dict[str, float]
     
-    + connect(websocket: WebSocket): None
-    + subscribe_symbol(ws: WebSocket, symbol: str): None
-    + broadcast_quote(symbol: str, quote: Quote): None
-    + handle_disconnect(websocket: WebSocket): None
-```
-
-### Data Connector Layer
-
-#### Abstract Data Connector
-```python
-# src/backend/feeds/base.py
-class DataConnector(ABC):
-    @abstractmethod
-    async def get_quotes(symbols: List[str]) -> List[Quote]:
-        pass
-        
-    @abstractmethod  
-    async def get_history(symbol: str, interval: str, 
-                         start: datetime, end: datetime) -> List[Candle]:
-        pass
-        
-    @abstractmethod
-    async def websocket_stream(symbols: List[str]) -> AsyncIterator[Quote]:
-        pass
-```
-
-#### Tradier Implementation
-```python
-# src/backend/feeds/tradier.py
-class TradierConnector(DataConnector):
-    - api_key: str
-    - base_url: str
-    - session: aiohttp.ClientSession
-    - websocket_url: str
-    
-    + authenticate(): bool
-    + get_quotes(symbols: List[str]) -> List[Quote]
-    + get_history(symbol: str, **kwargs) -> List[Candle]
-    + websocket_stream(symbols: List[str]) -> AsyncIterator[Quote]
-    + place_order(order: OrderRequest) -> OrderResponse
+class PortfolioPosition(BaseModel):
+    symbol: str
+    quantity: float
+    avg_price: float
+    weight: float
+    unrealized_pnl: float
 ```
 
 ## 🔄 Data Flow
 
-### Real-time Data Flow
+### Real-Time Market Data Flow
 ```
-┌─────────────┐    ┌─────────────┐    ┌─────────────┐    ┌─────────────┐
-│   Market    │    │   Tradier   │    │   Backend   │    │  Frontend   │
-│   Data      │───►│   WebSocket │───►│  WebSocket  │───►│    UI       │
-│   Sources   │    │   Feed      │    │   Manager   │    │  Components │
-└─────────────┘    └─────────────┘    └─────────────┘    └─────────────┘
-
-1. Market data updates
-2. Tradier WebSocket receives updates  
-3. Backend processes and validates data
-4. WebSocket manager broadcasts to subscribers
-5. Frontend receives and updates UI components
+Tradier WebSocket → DataHub Server → Redis Cache → WebSocket Clients
+                 ↘                ↗              ↘
+                  UDF Protocol   FastAPI        TradingView Widget
 ```
 
-### Historical Data Flow (UDF Protocol)
+### Strategy Execution Flow
 ```
-┌─────────────┐    ┌─────────────┐    ┌─────────────┐    ┌─────────────┐
-│ TradingView │    │   Backend   │    │   Tradier   │    │   Market    │
-│   Widget    │───►│ UDF Handler │───►│   REST API  │───►│    Data     │
-│             │◄───│             │◄───│             │◄───│   Sources   │
-└─────────────┘    └─────────────┘    └─────────────┘    └─────────────┘
-
-1. TradingView requests historical data
-2. Backend UDF handler processes request
-3. Tradier API fetches historical candles
-4. Backend formats response per UDF specification
-5. TradingView widget renders chart data
+Kairos Strategy → Webhook Alert → DataHub → Execution Engine → Risk Checks → Tradier API
+      ↓              ↓              ↓            ↓              ↓           ↓
+   YAML Config   HTTP POST      AlertEvent   Order Creation  Validation   Order Fill
+   Cron Timer    JSON Payload   Processing   Position Size   Risk Mgmt    Portfolio Update
 ```
 
-### Authentication Flow (TradingView Mode)
+### Order Lifecycle Flow
 ```
-┌─────────────┐    ┌─────────────┐    ┌─────────────┐    ┌─────────────┐
-│  Frontend   │    │ Auth Window │    │ TradingView │    │  Main App   │
-│ Mode Toggle │───►│  (Electron) │───►│   Login     │───►│ Authenticated│
-│             │    │             │    │   Server    │    │    Mode     │
-└─────────────┘    └─────────────┘    └─────────────┘    └─────────────┘
-
-1. User clicks mode toggle
-2. Electron opens authentication window
-3. User logs into TradingView
-4. Session cookies captured via IPC
-5. Main app switches to authenticated mode
+Alert Event → Risk Validation → Position Sizing → Order Placement → Fill Monitoring
+     ↓              ↓                ↓               ↓               ↓
+ Webhook Data   Account Check    Portfolio Opt    Broker API      Status Update
+ Symbol/Side    Daily Limits     Allocation %     Order Submit    P&L Tracking
 ```
 
-### Inter-Process Communication (IPC)
+## 🛠️ Technology Stack
+
+### Backend Services
+- **FastAPI**: High-performance async web framework
+- **Pydantic**: Data validation and serialization
+- **Redis**: Caching, pub/sub messaging, and session storage
+- **WebSocket**: Real-time data streaming
+- **asyncio**: Asynchronous programming throughout
+
+### Data & Storage
+- **JSON**: Configuration and data exchange format
+- **Environment Variables**: Secure configuration management
+- **File System**: Local storage for logs and state
+
+### External Integrations
+- **Tradier API**: Market data and trading operations
+- **TradingView**: Charting widgets and webhook alerts
+- **Kairos**: Strategy automation and job scheduling
+
+### Development & Operations
+- **Python 3.11+**: Primary development language
+- **Type Hints**: Comprehensive type safety with mypy
+- **Systemd**: Service management and scheduling
+- **Git**: Version control with development logging
+
+## ⚙️ Strategy Automation
+
+### Kairos Integration (`src/automation/kairos_jobs/`)
+
+The platform uses Kairos for automated strategy execution with YAML-based job definitions:
+
+#### Strategy Types
+
+1. **Momentum Strategy** (`momentum_strategy.yml`)
+   - **Schedule**: Every 5 minutes during market hours
+   - **Logic**: RSI oversold + volume breakout  
+   - **Symbols**: Large-cap tech stocks (AAPL, GOOGL, MSFT, etc.)
+   - **Risk**: 5% position size, 3% stop loss, 6% take profit
+
+2. **Mean Reversion Strategy** (`mean_reversion_strategy.yml`)
+   - **Schedule**: Every 15 minutes during market hours
+   - **Logic**: Bollinger Bands + RSI extremes
+   - **Symbols**: ETFs (SPY, QQQ, IWM, DIA, VTI)
+   - **Risk**: 8% position size, 5% stop loss, 4% take profit
+
+3. **Portfolio Rebalancing** (`portfolio_rebalance.yml`)  
+   - **Schedule**: Daily at 4:30 PM after market close
+   - **Logic**: Target allocation maintenance with drift threshold
+   - **Allocation**: 40% SPY, 20% QQQ, 15% VTI, 10% IWM, 15% sectors
+   - **Rebalance**: Triggered on >5% allocation deviation
+
+#### Webhook Architecture
+```yaml
+# Kairos Strategy Configuration
+webhooks:
+  datahub_alerts:
+    url: "http://localhost:8000/webhook/tradingview"
+    payload_templates:
+      long_entry:
+        action: "buy"
+        ticker: "{symbol}"
+        position_size: "{position_size}"
+        price: "{current_price}"
+        message: "Strategy signal: {strategy_name}"
 ```
-┌─────────────────────────────────────┐
-│            Main Process             │
-│  ┌─────────────┐  ┌─────────────┐   │
-│  │ IPC Handler │  │Window Manager│   │
-│  └─────────────┘  └─────────────┘   │
-└─────────┬───────────────────────────┘
-          │ IPC Messages
-          ▼
-┌─────────────────────────────────────┐
-│         Renderer Process            │
-│  ┌─────────────┐  ┌─────────────┐   │
-│  │  Vue App    │  │ TradingView │   │
-│  └─────────────┘  └─────────────┘   │
-└─────────────────────────────────────┘
 
-IPC Channels:
-- symbol-selected: Symbol change notifications
-- tradingview-auth: Authentication flow
-- data-stream: Real-time market data
-- settings-update: Configuration changes
+### Systemd Integration
+- **Service**: `trader-kairos.service` for continuous operation
+- **Timer**: `trader-kairos.timer` for market hours scheduling  
+- **Configuration**: `kairos.conf` for global settings
+- **Setup**: `setup_kairos.sh` for automated deployment
+
+## 🛡️ Risk Management
+
+### Multi-Layer Risk Architecture
+
+#### Strategy Level Risk
+```python
+risk_params = RiskParameters(
+    max_position_size=0.1,      # 10% max position
+    max_daily_loss=0.02,        # 2% daily loss limit  
+    max_concentration=0.25,     # 25% single position limit
+    min_account_balance=1000.0  # Minimum account balance
+)
 ```
 
-## 💻 Technology Stack
+#### Portfolio Level Risk
+```python
+portfolio_constraints = {
+    "max_positions": 10,
+    "correlation_limit": 0.8,
+    "sector_concentration": 0.3,
+    "leverage_limit": 1.0
+}
+```
 
-### Core Technologies
-| Layer | Technology | Version | Purpose |
-|-------|-----------|---------|---------|
-| Desktop | Electron | 26+ | Cross-platform desktop framework |
-| Frontend | Vue.js | 3.x | Reactive UI framework |
-| Backend | FastAPI | 0.104+ | High-performance API framework |
-| Language | TypeScript | 5.x | Type-safe frontend development |
-| Language | Python | 3.11+ | Backend development |
-| Charts | TradingView | Latest | Professional trading charts |
+#### Risk Check Implementation
+```python
+async def comprehensive_risk_check(order: Order) -> RiskCheckResult:
+    checks = [
+        self._check_account_balance(),
+        self._check_position_limits(),  
+        self._check_daily_loss_limit(),
+        self._check_market_hours(),
+        self._check_concentration_risk(),
+        self._check_volatility_limits()
+    ]
+    return aggregate_risk_results(checks)
+```
 
-### Supporting Technologies
-| Component | Technology | Purpose |
-|-----------|-----------|---------|
-| HTTP Client | aiohttp | Async HTTP requests |
-| WebSocket | websockets | Real-time communication |
-| Data Validation | Pydantic | Type-safe data models |
-| Process Management | Poetry | Python dependency management |
-| Build System | Vite | Fast frontend build tool |
-| Package Manager | npm | Node.js dependency management |
-| Testing | Pytest + Vitest | Comprehensive test coverage |
-
-### Development Tools
-| Tool | Purpose |
-|------|---------|
-| Ruff | Python linting and formatting |
-| Black | Python code formatting |
-| ESLint | JavaScript/TypeScript linting |
-| Prettier | Code formatting |
-| mypy | Python static type checking |
-| TypeScript | Frontend type checking |
+### Emergency Controls
+- **Emergency Stop**: Immediate halt of all trading with position liquidation
+- **Circuit Breakers**: Automatic suspension on excessive volatility or losses
+- **Position Limits**: Hard limits on position size and leverage
+- **Market Hours**: Enforcement of trading hour restrictions
 
 ## 🚀 Deployment Architecture
 
 ### Development Environment
-```
-┌─────────────────────────────────────┐
-│        Developer Machine            │
-│                                     │
-│  ┌─────────────┐  ┌─────────────┐   │
-│  │   Backend   │  │  Frontend   │   │
-│  │ (Port 8000) │  │ (Electron)  │   │
-│  └─────────────┘  └─────────────┘   │
-│                                     │
-│  ┌─────────────────────────────┐     │
-│  │      External APIs          │     │
-│  │  - Tradier (Sandbox)       │     │
-│  │  - TradingView Auth         │     │
-│  └─────────────────────────────┘     │
-└─────────────────────────────────────┘
+```bash
+# Local development setup
+python -m uvicorn src.backend.datahub.server:app --reload --port 8000
+redis-server --port 6379
+./src/automation/kairos_jobs/setup_kairos.sh dev
 ```
 
-### Production Distribution
-```
-┌─────────────────────────────────────┐
-│         User Machine               │
-│                                     │
-│  ┌─────────────────────────────┐     │
-│  │     Packaged Electron App   │     │
-│  │                             │     │
-│  │  ┌─────────┐ ┌─────────┐    │     │
-│  │  │Frontend │ │ Backend │    │     │
-│  │  │  (UI)   │ │ (API)   │    │     │
-│  │  └─────────┘ └─────────┘    │     │
-│  └─────────────────────────────┘     │
-│                  │                   │
-│         ┌────────┼────────┐          │
-│         ▼        ▼        ▼          │
-│  ┌─────────┐ ┌─────────┐ ┌─────────┐ │
-│  │Tradier  │ │Trading  │ │ Future  │ │
-│  │   API   │ │View API │ │  APIs   │ │
-│  └─────────┘ └─────────┘ └─────────┘ │
-└─────────────────────────────────────┘
+### Production Deployment
+
+#### Systemd Services
+```bash
+# Kairos strategy automation
+systemctl enable trader-kairos.timer
+systemctl start trader-kairos.timer
+
+# DataHub server (via custom service)
+systemctl enable trader-datahub.service
+systemctl start trader-datahub.service
+
+# Redis cache
+systemctl enable redis.service
+systemctl start redis.service
 ```
 
-### Build Pipeline
+#### Directory Structure
 ```
-┌─────────────┐    ┌─────────────┐    ┌─────────────┐
-│   Source    │    │    Build    │    │ Distribution│
-│    Code     │───►│   Process   │───►│  Artifacts  │
-│             │    │             │    │             │
-│ ├─ Python   │    │ ├─ Poetry   │    │ ├─ .dmg     │
-│ ├─ TypeScript│    │ ├─ Vite     │    │ ├─ .exe     │
-│ ├─ Vue      │    │ ├─ Electron │    │ ├─ .AppImage│
-│ └─ Assets   │    │ └─ Package  │    │ └─ .tar.gz  │
-└─────────────┘    └─────────────┘    └─────────────┘
+/opt/trader-ops/                    # Main installation
+├── src/backend/                    # Backend services
+├── src/automation/kairos_jobs/     # Strategy configurations
+├── venv/                          # Python virtual environment
+└── logs/                          # Application logs
+
+/etc/trader-ops/                   # Configuration
+├── kairos.env                     # Environment variables
+└── datahub.conf                   # DataHub settings
+
+/var/log/kairos/                   # Kairos logs
+├── momentum_strategy.log
+├── mean_reversion_strategy.log
+└── portfolio_rebalance.log
+
+/var/lib/kairos/                   # Strategy state
+├── strategy_state/
+└── execution_history/
+```
+
+#### Resource Requirements
+```yaml
+Minimum:
+  CPU: 2 cores
+  RAM: 4GB
+  Disk: 20GB SSD
+  Network: Broadband (low latency preferred)
+
+Recommended:
+  CPU: 4 cores  
+  RAM: 8GB
+  Disk: 50GB NVMe SSD
+  Network: Fiber/dedicated line for trading
+```
+
+### Container Deployment (Future)
+```dockerfile
+# Multi-stage Docker build for production
+FROM python:3.11-slim as builder
+WORKDIR /app
+COPY requirements.txt .
+RUN pip install --user -r requirements.txt
+
+FROM python:3.11-slim
+COPY --from=builder /root/.local /root/.local
+COPY src/ ./src/
+CMD ["uvicorn", "src.backend.datahub.server:app", "--host", "0.0.0.0"]
 ```
 
 ## 🔒 Security Architecture
 
-### Authentication & Authorization
+### API Security
+```python
+# Environment-based configuration
+API_KEYS = {
+    "tradier": os.getenv("TRADIER_API_KEY"),
+    "tradingview": os.getenv("TRADINGVIEW_WEBHOOK_SECRET"),
+    "datahub": os.getenv("DATAHUB_API_KEY")
+}
+
+# Header-based authentication
+headers = {
+    "Authorization": f"Bearer {TRADIER_API_KEY}",
+    "X-Webhook-Secret": WEBHOOK_SECRET
+}
 ```
-┌─────────────────────────────────────┐
-│           Security Layers           │
-│                                     │
-│  ┌─────────────────────────────┐     │
-│  │      TradingView Auth       │     │
-│  │  - OAuth 2.0 Flow          │     │
-│  │  - Session Cookie Capture   │     │
-│  │  - Secure IPC Transfer      │     │
-│  └─────────────────────────────┘     │
-│                                     │
-│  ┌─────────────────────────────┐     │
-│  │       API Security          │     │
-│  │  - API Key Management       │     │
-│  │  - Request Rate Limiting    │     │
-│  │  - Input Validation         │     │
-│  └─────────────────────────────┘     │
-│                                     │
-│  ┌─────────────────────────────┐     │
-│  │      Local Security         │     │
-│  │  - Secure Credential Store  │     │
-│  │  - Memory Protection        │     │
-│  │  - Process Isolation        │     │
-│  └─────────────────────────────┘     │
-└─────────────────────────────────────┘
+
+### Webhook Validation
+```python
+# TradingView webhook signature verification
+def verify_webhook_signature(payload: bytes, signature: str) -> bool:
+    expected = hmac.new(
+        WEBHOOK_SECRET.encode(),
+        payload,
+        hashlib.sha256
+    ).hexdigest()
+    return hmac.compare_digest(signature, expected)
 ```
+
+### System Security
+- **File Permissions**: Restrictive permissions on config files (600)
+- **Process Isolation**: Dedicated user account for trading services
+- **Network Security**: Firewall rules limiting external access
+- **Systemd Security**: NoNewPrivileges, ProtectSystem, PrivateTmp
 
 ### Data Protection
-- **In Transit**: HTTPS/WSS for all external communications
-- **At Rest**: Encrypted credential storage using OS keychain
-- **In Memory**: Secure memory allocation for sensitive data
-- **Logs**: Sanitized logging with no credential exposure
-
-### Security Boundaries
-```
-┌───────────────────────────────┐
-│         Trust Boundary        │
-│                               │
-│  ┌─────────────────────────┐   │ ┌─────────────────────────┐
-│  │     Local Process       │   │ │    External Services    │
-│  │                         │◄──┼─┤                         │
-│  │ ├─ Electron Main        │   │ │ ├─ Tradier API          │
-│  │ ├─ Electron Renderer    │   │ │ ├─ TradingView          │
-│  │ ├─ FastAPI Backend      │   │ │ └─ Future Services      │
-│  │ └─ Local Data Store     │   │ │                         │
-│  └─────────────────────────┘   │ └─────────────────────────┘
-└───────────────────────────────┘
-```
+- **API Keys**: Environment variables, never hardcoded
+- **Logs**: Sanitized to exclude sensitive trading data
+- **State Files**: Encrypted storage for strategy state
+- **Network**: TLS for all external API communications
 
 ## ⚡ Performance Considerations
 
-### Real-time Data Optimization
-- **WebSocket Connection Pooling**: Efficient connection management
-- **Data Compression**: Minimize bandwidth usage
-- **Message Batching**: Aggregate multiple updates
-- **Smart Throttling**: Rate limiting for UI updates
-
-### Memory Management
+### Real-Time Requirements
 ```python
-# Example: Efficient quote caching
-class QuoteCache:
-    def __init__(self, max_size: int = 1000):
-        self._cache: Dict[str, Quote] = {}
-        self._access_times: Dict[str, float] = {}
-        self._max_size = max_size
-    
-    def get(self, symbol: str) -> Optional[Quote]:
-        if symbol in self._cache:
-            self._access_times[symbol] = time.time()
-            return self._cache[symbol]
-        return None
-    
-    def put(self, quote: Quote) -> None:
-        if len(self._cache) >= self._max_size:
-            self._evict_lru()
-        self._cache[quote.symbol] = quote
-        self._access_times[quote.symbol] = time.time()
+# Performance targets
+LATENCY_TARGETS = {
+    "websocket_data": "< 50ms",      # Market data delivery
+    "api_response": "< 100ms",       # REST API responses  
+    "risk_check": "< 25ms",          # Risk validation
+    "order_execution": "< 500ms"     # End-to-end execution
+}
 ```
 
-### UI Performance
-- **Virtual Scrolling**: Handle large datasets efficiently
-- **Component Lazy Loading**: Load components on demand
-- **State Management**: Optimized Vuex store with normalized data
-- **Chart Optimization**: TradingView widget performance tuning
+### Optimization Strategies
 
-### Backend Performance
-- **Async Processing**: Non-blocking I/O operations
-- **Connection Pooling**: Reuse HTTP connections
-- **Caching Strategy**: Multi-layer caching (memory, disk)
-- **Database Optimization**: Efficient queries and indexing (future)
+#### Async Programming
+```python
+# Non-blocking I/O throughout
+async def process_market_data():
+    async with aiohttp.ClientSession() as session:
+        tasks = [fetch_quotes(symbol) for symbol in symbols]
+        results = await asyncio.gather(*tasks)
+    return results
+```
+
+#### Caching Strategy
+```python
+# Redis caching for frequently accessed data
+CACHE_CONFIG = {
+    "quotes": {"ttl": 1, "key": "quote:{symbol}"},
+    "history": {"ttl": 300, "key": "history:{symbol}:{resolution}"},
+    "portfolio": {"ttl": 60, "key": "portfolio:{account_id}"}
+}
+```
+
+#### Connection Pooling
+```python
+# Persistent connections for external APIs
+session = aiohttp.ClientSession(
+    connector=aiohttp.TCPConnector(
+        limit=100,           # Max connections
+        limit_per_host=20,   # Per-host limit
+        keepalive_timeout=300 # Keep-alive duration
+    )
+)
+```
 
 ### Monitoring & Metrics
 ```python
-# Example: Performance monitoring
-class PerformanceMonitor:
-    def __init__(self):
-        self.metrics = {
-            'websocket_connections': 0,
-            'api_requests_per_second': 0,
-            'memory_usage_mb': 0,
-            'response_time_ms': 0
-        }
-    
-    def track_websocket_connection(self):
-        self.metrics['websocket_connections'] += 1
-    
-    def track_api_request(self, response_time: float):
-        self.metrics['response_time_ms'] = response_time
+# Performance tracking
+METRICS = {
+    "execution_times": [],
+    "risk_check_times": [],
+    "api_latencies": {},
+    "websocket_reconnections": 0,
+    "failed_requests": 0
+}
+
+# Health check endpoints
+@app.get("/health")
+async def health_check():
+    return {
+        "status": "healthy",
+        "metrics": get_performance_metrics(),
+        "uptime": get_uptime(),
+        "version": "1.0.0"
+    }
 ```
 
-### Scalability Patterns
-- **Horizontal Scaling**: Multiple data connector instances
-- **Load Balancing**: Distribute WebSocket connections
-- **Caching Strategy**: Redis for shared state (future)
-- **Message Queues**: Async processing (future enhancement)
+### Scalability Considerations
+- **Horizontal Scaling**: Redis pub/sub for multi-instance coordination
+- **Load Balancing**: Multiple DataHub instances behind load balancer
+- **Database Sharding**: Portfolio data partitioned by account
+- **Geographic Distribution**: Regional deployments for latency optimization
 
----
+## 📋 Implementation Status
 
-This architecture provides a solid foundation for a professional trading application while maintaining flexibility for future enhancements and integrations.
+### ✅ Completed Components
+- **Backend Data Models**: Complete Pydantic models with validation
+- **DataHub Server**: FastAPI with TradingView UDF protocol
+- **Tradier Integration**: Full API wrapper with WebSocket streaming  
+- **Execution Engine**: Advanced trading with risk management
+- **Strategy Automation**: Kairos configurations with systemd integration
+- **Documentation**: Comprehensive architecture and setup guides
+
+### 🚧 In Progress  
+- **Frontend Development**: Electron app with TradingView widget (pending)
+- **IPC Implementation**: Symbol selection and chart integration (pending)
+- **Testing Suite**: Unit and E2E tests with Playwright (pending)
+
+### 📋 Planned Features
+- **Chronos Integration**: Flask listener for webhook execution  
+- **News Integration**: NewsAPI and FRED data feeds
+- **Backtesting**: QuantConnect LEAN integration
+- **Portfolio Analytics**: PyPortfolioOpt and QuantStats integration
+- **Multi-Broker**: Tradovate and CCXT support
+
+## 🔧 Development Workflow
+
+### Local Development
+```bash
+# 1. Start Redis cache
+redis-server --port 6379
+
+# 2. Start DataHub server  
+cd src/backend && python -m uvicorn datahub.server:app --reload
+
+# 3. Start Kairos in development mode
+./src/automation/kairos_jobs/setup_kairos.sh dev
+
+# 4. Run tests
+pytest tests/ -v
+
+# 5. Code quality checks
+ruff check . --fix
+mypy src/
+```
+
+### Production Deployment
+```bash
+# 1. System setup
+sudo ./src/automation/kairos_jobs/setup_kairos.sh system
+
+# 2. Configure environment
+sudo nano /etc/trader-ops/kairos.env
+
+# 3. User setup  
+./src/automation/kairos_jobs/setup_kairos.sh user
+
+# 4. Start services
+./src/automation/kairos_jobs/setup_kairos.sh start
+```
+
+This architecture provides a robust foundation for automated trading with comprehensive risk management, real-time data processing, and scalable deployment options. The modular design enables independent development and testing of components while maintaining system cohesion through well-defined interfaces.

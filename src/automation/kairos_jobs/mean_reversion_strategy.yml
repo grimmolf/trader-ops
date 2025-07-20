@@ -1,0 +1,179 @@
+---
+# Mean Reversion Trading Strategy - Kairos Job Configuration
+# Runs every 15 minutes during market hours to identify oversold/overbought conditions
+
+name: mean_reversion_strategy
+description: "Mean reversion strategy using Bollinger Bands and RSI"
+schedule: "*/15 9-16 * * 1-5"  # Every 15 minutes during market hours
+
+job:
+  type: "strategy"
+  strategy_id: "mean_reversion_v1"
+  
+  # Strategy parameters
+  parameters:
+    symbols:
+      - "SPY"   # S&P 500 ETF
+      - "QQQ"   # NASDAQ ETF
+      - "IWM"   # Russell 2000 ETF
+      - "DIA"   # Dow Jones ETF
+      - "VTI"   # Total Stock Market ETF
+    
+    # Technical indicators
+    bollinger_period: 20
+    bollinger_std: 2.0
+    rsi_period: 14
+    rsi_extreme_oversold: 20
+    rsi_extreme_overbought: 80
+    
+    # Mean reversion parameters
+    price_deviation_threshold: 0.98  # Price must be 2% below lower band
+    volume_confirmation: 1.2         # 1.2x average volume for confirmation
+    
+    # Risk management
+    position_size: 0.08     # 8% of portfolio per position
+    stop_loss: 0.05         # 5% stop loss
+    take_profit: 0.04       # 4% take profit (conservative for mean reversion)
+    max_positions: 2        # Conservative position count for ETFs
+    hold_time_max: 5        # Maximum hold time in days
+
+  # Data sources
+  data_sources:
+    - name: "tradier"
+      endpoint: "http://localhost:8000/api/v1/quotes"
+      symbols: "{symbols}"
+    
+    - name: "history"
+      endpoint: "http://localhost:8000/udf/history"
+      resolution: "15"
+      lookback_periods: 100  # More history for Bollinger Bands calculation
+
+  # Strategy conditions
+  conditions:
+    entry_long:
+      - "price < bollinger_lower * {price_deviation_threshold}"
+      - "rsi < {rsi_extreme_oversold}"
+      - "volume > average_volume * {volume_confirmation}"
+      - "open_positions < {max_positions}"
+      - "market_trend != 'strong_downtrend'"  # Avoid catching falling knives
+    
+    entry_short:
+      - "price > bollinger_upper * (2 - {price_deviation_threshold})"
+      - "rsi > {rsi_extreme_overbought}"
+      - "volume > average_volume * {volume_confirmation}"
+      - "open_positions < {max_positions}"
+      - "market_trend != 'strong_uptrend'"
+    
+    exit_long:
+      - "price > bollinger_middle"  # Price returns to mean
+      - "rsi > 50"                  # RSI normalizes
+      - "price_change < -{stop_loss}"
+      - "price_change > {take_profit}"
+      - "days_held > {hold_time_max}"
+    
+    exit_short:
+      - "price < bollinger_middle"
+      - "rsi < 50"
+      - "price_change > {stop_loss}"
+      - "price_change < -{take_profit}"
+      - "days_held > {hold_time_max}"
+
+  # Webhook configuration
+  webhooks:
+    datahub_alerts:
+      url: "http://localhost:8000/webhook/tradingview"
+      method: "POST"
+      headers:
+        Content-Type: "application/json"
+        X-Strategy-Source: "kairos-mean-reversion"
+      
+      payload_templates:
+        long_entry:
+          strategy:
+            name: "mean_reversion_strategy"
+            version: "1.0"
+            signal_type: "entry"
+          action: "buy"
+          ticker: "{symbol}"
+          contracts: "{position_size}"
+          position_size: "{position_size}"
+          price: "{current_price}"
+          timestamp: "{timestamp}"
+          alert_name: "mean_reversion_long"
+          message: "Mean reversion long entry for {symbol} - Price: {current_price}, BB Lower: {bollinger_lower}, RSI: {rsi}"
+        
+        short_entry:
+          strategy:
+            name: "mean_reversion_strategy"
+            version: "1.0"
+            signal_type: "entry"
+          action: "sell"
+          ticker: "{symbol}"
+          contracts: "{position_size}"
+          position_size: "{position_size}"
+          price: "{current_price}"
+          timestamp: "{timestamp}"
+          alert_name: "mean_reversion_short"
+          message: "Mean reversion short entry for {symbol} - Price: {current_price}, BB Upper: {bollinger_upper}, RSI: {rsi}"
+        
+        exit_signal:
+          strategy:
+            name: "mean_reversion_strategy"
+            version: "1.0"
+            signal_type: "exit"
+          action: "exit"
+          ticker: "{symbol}"
+          contracts: "{position_size}"
+          position_size: "{position_size}"
+          price: "{current_price}"
+          timestamp: "{timestamp}"
+          alert_name: "mean_reversion_exit"
+          message: "Mean reversion exit for {symbol} - Reason: {exit_reason}, P&L: {unrealized_pnl}"
+
+  # Advanced features
+  features:
+    market_regime_filter:
+      enabled: true
+      lookback_days: 30
+      volatility_threshold: 0.25  # Adjust strategy in high volatility
+    
+    correlation_filter:
+      enabled: true
+      max_correlation: 0.7  # Avoid highly correlated positions
+      reference_symbols: ["SPY"]
+    
+    news_sentiment_filter:
+      enabled: false  # Can be enabled when news integration is added
+      min_sentiment_score: -0.3
+
+  # Logging
+  logging:
+    level: "INFO"
+    file: "/var/log/kairos/mean_reversion_strategy.log"
+    include_market_data: true
+    include_signal_details: true
+
+  # Performance tracking
+  performance:
+    track_signals: true
+    calculate_metrics: true
+    benchmark_symbol: "SPY"
+    
+    metrics:
+      - "win_rate"
+      - "profit_factor"
+      - "sharpe_ratio"
+      - "max_drawdown"
+      - "average_hold_time"
+
+# Environment configuration
+environment:
+  DATAHUB_URL: "http://localhost:8000"
+  TRADIER_API_KEY: "${TRADIER_API_KEY}"
+  STRATEGY_LOG_LEVEL: "INFO"
+
+# Resource limits
+resources:
+  memory_limit: "256MB"
+  cpu_limit: "0.3"
+  execution_timeout: "240s"

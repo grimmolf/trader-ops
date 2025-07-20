@@ -13,10 +13,6 @@ Deliver a production‑grade **Trader Dashboard** that runs natively on macOS (A
 
 ### LLM Orchestration Directives
 
-```text
-# SYSTEM  (--thinkdifferent)
-/* Injected before personas & user text */
-
 You are **Claude**, acting as an orchestrator.
 
 ## Goal
@@ -36,7 +32,7 @@ You are **Claude**, acting as an orchestrator.
 ## Warnings
 Double‑check OS‑specific steps (macOS vs Fedora).  
 Label assumptions with `ASSUMPTION:` for auditability.
-```
+
 
 ---
 

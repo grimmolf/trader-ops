@@ -1,6 +1,6 @@
-# Trader Ops API Documentation
+# Trader Dashboard API Documentation
 
-Complete API reference for the Trader Ops backend services, including REST endpoints, WebSocket connections, and data models.
+Complete API reference for the Trader Dashboard backend services, including REST endpoints, WebSocket connections, and webhook integrations for automated trading.
 
 ## 📋 Table of Contents
 

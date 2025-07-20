@@ -1,0 +1,208 @@
+---
+# Portfolio Rebalancing Job - Kairos Configuration
+# Runs daily after market close to rebalance portfolio allocations
+
+name: portfolio_rebalance
+description: "Daily portfolio rebalancing based on target allocations and risk metrics"
+schedule: "30 16 * * 1-5"  # 4:30 PM daily after market close
+
+job:
+  type: "portfolio_management"
+  strategy_id: "rebalance_v1"
+  
+  # Rebalancing parameters
+  parameters:
+    # Target allocations (can be updated based on market conditions)
+    target_allocations:
+      equity_etfs:
+        "SPY": 0.40    # S&P 500 - Core holding
+        "QQQ": 0.20    # NASDAQ - Growth exposure
+        "IWM": 0.10    # Small caps
+        "VTI": 0.15    # Total market diversifier
+      
+      sector_rotation:
+        "XLK": 0.05    # Technology
+        "XLF": 0.05    # Financials
+        "XLE": 0.03    # Energy
+        "XLV": 0.02    # Healthcare
+      
+      cash_reserve: 0.00  # Fully invested strategy
+    
+    # Rebalancing thresholds
+    deviation_threshold: 0.05    # Rebalance if allocation deviates >5%
+    min_trade_size: 100         # Minimum dollar amount to trade
+    transaction_cost: 0.0       # Assume commission-free trades
+    
+    # Risk management
+    max_position_size: 0.45     # Maximum allocation to any single position
+    correlation_limit: 0.8      # Limit highly correlated positions
+    volatility_adjustment: true  # Adjust allocations based on volatility
+    
+    # Portfolio constraints
+    leverage_limit: 1.0         # No leverage
+    cash_buffer: 0.02           # Keep 2% cash buffer for flexibility
+
+  # Data sources for portfolio analysis
+  data_sources:
+    - name: "portfolio_positions"
+      endpoint: "http://localhost:8000/api/v1/portfolio/positions"
+    
+    - name: "market_data"
+      endpoint: "http://localhost:8000/api/v1/quotes"
+      symbols: "{all_symbols}"
+    
+    - name: "risk_metrics"
+      endpoint: "http://localhost:8000/api/v1/portfolio/risk"
+      lookback_days: 252  # One year of data
+
+  # Rebalancing logic
+  conditions:
+    rebalance_required:
+      - "any_allocation_deviation > {deviation_threshold}"
+      - "portfolio_correlation_risk > {correlation_limit}"
+      - "position_size_breach > {max_position_size}"
+      - "cash_buffer < {cash_buffer}"
+    
+    risk_adjustment_required:
+      - "portfolio_volatility > historical_avg * 1.5"
+      - "max_drawdown > 0.15"
+      - "correlation_with_market > 0.95"
+    
+    emergency_rebalance:
+      - "single_position_weight > 0.6"
+      - "portfolio_beta > 2.0"
+      - "daily_var_breach > 3"  # 3 consecutive VaR breaches
+
+  # Rebalancing execution
+  execution:
+    trade_sequencing:
+      - "sell_overweight_positions"    # Reduce overweight positions first
+      - "buy_underweight_positions"    # Then increase underweight
+      - "adjust_cash_allocation"       # Finally adjust cash
+    
+    trade_timing:
+      spread_trades: true             # Spread trades over 15 minutes
+      max_market_impact: 0.02         # Limit market impact to 2%
+      use_limit_orders: true          # Use limit orders for better execution
+    
+    order_parameters:
+      time_in_force: "GTC"           # Good till cancelled
+      limit_price_buffer: 0.001      # 0.1% buffer for limit orders
+      max_slippage: 0.005            # 0.5% maximum slippage tolerance
+
+  # Webhook notifications for rebalancing actions
+  webhooks:
+    rebalance_alerts:
+      url: "http://localhost:8000/webhook/tradingview"
+      method: "POST"
+      headers:
+        Content-Type: "application/json"
+        X-Strategy-Source: "kairos-rebalance"
+      
+      payload_templates:
+        rebalance_trade:
+          strategy:
+            name: "portfolio_rebalance"
+            version: "1.0"
+            signal_type: "rebalance"
+          action: "{trade_action}"      # buy/sell
+          ticker: "{symbol}"
+          contracts: "{shares}"
+          position_size: "{dollar_amount}"
+          price: "{target_price}"
+          timestamp: "{timestamp}"
+          alert_name: "portfolio_rebalance"
+          message: "Portfolio rebalance: {trade_action} {shares} shares of {symbol} - Target allocation: {target_weight}%, Current: {current_weight}%"
+        
+        risk_adjustment:
+          strategy:
+            name: "portfolio_rebalance"
+            version: "1.0"
+            signal_type: "risk_adjustment"
+          action: "adjust"
+          ticker: "PORTFOLIO"
+          message: "Portfolio risk adjustment triggered - Volatility: {current_volatility}, Max DD: {max_drawdown}, Action: {adjustment_action}"
+        
+        emergency_rebalance:
+          strategy:
+            name: "portfolio_rebalance"
+            version: "1.0"
+            signal_type: "emergency"
+          action: "emergency_rebalance"
+          ticker: "PORTFOLIO"
+          message: "EMERGENCY: Portfolio rebalance required - Trigger: {emergency_reason}, Action: {corrective_action}"
+
+  # Advanced portfolio analytics
+  analytics:
+    risk_budgeting:
+      enabled: true
+      max_risk_contribution: 0.25    # No position >25% of total risk
+      
+    factor_exposure:
+      track_factors:
+        - "market_beta"
+        - "size_factor"
+        - "value_factor"
+        - "momentum_factor"
+        - "quality_factor"
+      
+      target_exposures:
+        market_beta: 1.0      # Match market exposure
+        size_factor: 0.1      # Slight small-cap tilt
+        value_factor: 0.0     # Neutral value exposure
+        momentum_factor: 0.2  # Positive momentum tilt
+    
+    optimization:
+      method: "efficient_frontier"
+      objective: "max_sharpe"
+      constraints:
+        - "max_weight <= 0.4"
+        - "min_weight >= 0.0"
+        - "turnover <= 0.2"    # Max 20% turnover per rebalance
+
+  # Performance monitoring
+  monitoring:
+    track_metrics:
+      - "tracking_error"
+      - "information_ratio"
+      - "turnover_rate"
+      - "transaction_costs"
+      - "rebalancing_alpha"
+    
+    benchmarks:
+      primary: "SPY"
+      secondary: "VTI"
+    
+    alerts:
+      tracking_error_threshold: 0.05
+      turnover_warning_level: 0.3
+      cost_budget_exceeded: 0.001   # 10bps annual cost limit
+
+  # Logging and reporting
+  logging:
+    level: "INFO"
+    file: "/var/log/kairos/portfolio_rebalance.log"
+    include_pre_post_allocations: true
+    include_risk_metrics: true
+    
+  reporting:
+    generate_daily_report: true
+    report_format: "json"
+    include_charts: false
+    
+    email_summary:
+      enabled: false  # Can be enabled when email integration is added
+      recipients: []
+      frequency: "daily"
+
+# Environment variables
+environment:
+  DATAHUB_URL: "http://localhost:8000"
+  PORTFOLIO_API_KEY: "${PORTFOLIO_API_KEY}"
+  RISK_ENGINE_URL: "http://localhost:8000/api/v1/risk"
+
+# Resource allocation
+resources:
+  memory_limit: "1GB"      # More memory for portfolio calculations
+  cpu_limit: "1.0"         # Full CPU core for optimization
+  execution_timeout: "600s" # 10 minutes for complex rebalancing

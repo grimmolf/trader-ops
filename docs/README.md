@@ -99,18 +99,25 @@ npm run build:main && npm run build:renderer              # Build all
 npm run pack                                              # Package app
 ```
 
-## 📚 Documentation
+## 📚 Documentation Index
 
-### For Users
+### User Documentation
+- **[Installation Guide](user/INSTALLATION_GUIDE.md)** - Complete setup instructions
+- **[Getting Started](user/GETTING_STARTED.md)** - Basic usage and features
 - **[TradingView Integration Guide](user/TRADINGVIEW_INTEGRATION.md)** - How to use personal TradingView accounts
-- **[Trading Setup Guide](user/trading-setup.md)** - Configure API keys and brokers
-- **[Dashboard Guide](user/dashboard-guide.md)** - Navigate the interface
 
-### For Developers
-- **[Architecture Overview](architecture/)** - System design and components
-- **[API Documentation](api/)** - Backend API reference
-- **[Development Guide](developer/)** - Setup and contribution guidelines
-- **[Deployment Guide](developer/deployment.md)** - Production deployment
+### Developer Documentation
+- **[Development Setup](developer/SETUP.md)** - Developer environment configuration
+- **[Improvement Report](developer/IMPROVEMENT_REPORT.md)** - Recent improvements and optimizations
+
+### Architecture Documentation
+- **[System Architecture](architecture/SYSTEM_ARCHITECTURE.md)** - High-level system design
+- **[Product Requirements Prompts (PRPs)](architecture/PRPs/)**
+  - [Trader Dashboard PRP](architecture/PRPs/prps_trader_dashboard_prp.md) - Original dashboard implementation
+  - [TradingView Backtesting PRP](architecture/PRPs/prp_tradingview_backtesting.md) - **NEW** Strategy backtesting integration
+
+### API Documentation
+- **[API Reference](api/README.md)** - Complete API documentation
 
 ## 🔧 Configuration
 

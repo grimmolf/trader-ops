@@ -1,0 +1,36 @@
+[Unit]
+Description=Trader Dashboard Kairos Job Scheduler Timer
+Documentation=https://github.com/your-org/trader-ops
+Requires=trader-kairos.service
+
+[Timer]
+# Start Kairos scheduler 30 minutes before market open (9:00 AM ET)
+OnCalendar=Mon..Fri 08:30:00
+# Keep running until 30 minutes after market close (4:30 PM ET)  
+# The service itself will manage individual job schedules
+# This timer just ensures the scheduler is active during trading hours
+
+# Additional calendar entries for different market sessions
+# Pre-market preparation
+OnCalendar=Mon..Fri 08:30:00
+
+# Market hours monitoring (redundant but ensures reliability)
+OnCalendar=Mon..Fri 09:00:00
+OnCalendar=Mon..Fri 12:00:00  # Midday check
+OnCalendar=Mon..Fri 15:00:00  # Hour before close
+
+# Post-market analysis
+OnCalendar=Mon..Fri 17:00:00
+
+# Weekend maintenance (Sundays only)
+OnCalendar=Sun 10:00:00
+
+# Ensure timer doesn't drift
+AccuracySec=1min
+Persistent=true
+
+# Random delay to prevent thundering herd if multiple systems
+RandomizedDelaySec=60
+
+[Install]
+WantedBy=timers.target

@@ -1,0 +1,54 @@
+[Unit]
+Description=Trader Dashboard Kairos Job Scheduler
+Documentation=https://github.com/your-org/trader-ops
+After=network.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=trader
+Group=trader
+WorkingDirectory=/opt/trader-ops
+Environment=PATH=/opt/trader-ops/venv/bin:/usr/local/bin:/usr/bin:/bin
+Environment=PYTHONPATH=/opt/trader-ops/src
+Environment=KAIROS_CONFIG_DIR=/opt/trader-ops/src/automation/kairos_jobs
+Environment=KAIROS_LOG_DIR=/var/log/kairos
+Environment=KAIROS_DATA_DIR=/var/lib/kairos
+
+# Environment file for sensitive configuration
+EnvironmentFile=-/etc/trader-ops/kairos.env
+
+# Kairos execution command
+ExecStart=/opt/trader-ops/venv/bin/python -m kairos.scheduler \
+    --config-dir=${KAIROS_CONFIG_DIR} \
+    --log-dir=${KAIROS_LOG_DIR} \
+    --data-dir=${KAIROS_DATA_DIR} \
+    --daemon \
+    --jobs-glob="*.yml"
+
+# Restart configuration
+Restart=always
+RestartSec=10
+StartLimitInterval=300
+StartLimitBurst=5
+
+# Security settings
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=strict
+ProtectHome=yes
+ReadWritePaths=/var/log/kairos /var/lib/kairos /tmp
+
+# Resource limits
+LimitNOFILE=65536
+LimitNPROC=4096
+MemoryLimit=2G
+CPUQuota=200%
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=trader-kairos
+
+[Install]
+WantedBy=multi-user.target

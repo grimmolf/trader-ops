@@ -1,0 +1,171 @@
+---
+# Momentum Trading Strategy - Kairos Job Configuration
+# Runs every 5 minutes during market hours to check for momentum breakouts
+
+name: momentum_strategy
+description: "Momentum breakout strategy using RSI and volume indicators"
+schedule: "*/5 9-16 * * 1-5"  # Every 5 minutes, 9 AM to 4 PM, Monday-Friday (market hours)
+
+job:
+  type: "strategy"
+  strategy_id: "momentum_v1"
+  
+  # Strategy parameters
+  parameters:
+    symbols:
+      - "AAPL"
+      - "GOOGL"
+      - "MSFT"
+      - "TSLA"
+      - "AMD"
+      - "NVDA"
+    
+    # Technical indicators
+    rsi_period: 14
+    rsi_oversold: 30
+    rsi_overbought: 70
+    
+    volume_threshold: 1.5  # 1.5x average volume
+    price_change_threshold: 0.02  # 2% price movement
+    
+    # Risk management
+    position_size: 0.05  # 5% of portfolio per position
+    stop_loss: 0.03      # 3% stop loss
+    take_profit: 0.06    # 6% take profit
+    max_positions: 3     # Maximum concurrent positions
+
+  # Data sources
+  data_sources:
+    - name: "tradier"
+      endpoint: "http://localhost:8000/api/v1/quotes"
+      symbols: "{symbols}"
+    
+    - name: "history"
+      endpoint: "http://localhost:8000/udf/history"
+      resolution: "5"
+      lookback_periods: 50
+
+  # Strategy logic (pseudo-code for Kairos execution)
+  conditions:
+    entry_long:
+      - "rsi < {rsi_oversold}"
+      - "volume > average_volume * {volume_threshold}"
+      - "price_change > {price_change_threshold}"
+      - "open_positions < {max_positions}"
+    
+    entry_short:
+      - "rsi > {rsi_overbought}"
+      - "volume > average_volume * {volume_threshold}"
+      - "price_change < -{price_change_threshold}"
+      - "open_positions < {max_positions}"
+    
+    exit_long:
+      - "rsi > {rsi_overbought}"
+      - "price_change < -{stop_loss}"
+      - "price_change > {take_profit}"
+    
+    exit_short:
+      - "rsi < {rsi_oversold}"
+      - "price_change > {stop_loss}"
+      - "price_change < -{take_profit}"
+
+  # Webhook configuration for alert generation
+  webhooks:
+    datahub_alerts:
+      url: "http://localhost:8000/webhook/tradingview"
+      method: "POST"
+      headers:
+        Content-Type: "application/json"
+        X-Strategy-Source: "kairos-momentum"
+      
+      # Webhook payload templates
+      payload_templates:
+        long_entry:
+          strategy:
+            name: "momentum_strategy"
+            version: "1.0"
+            signal_type: "entry"
+          action: "buy"
+          ticker: "{symbol}"
+          contracts: "{position_size}"
+          position_size: "{position_size}"
+          price: "{current_price}"
+          timestamp: "{timestamp}"
+          alert_name: "momentum_long_entry"
+          message: "Momentum long entry signal for {symbol} - RSI: {rsi}, Volume: {volume_ratio}x"
+        
+        short_entry:
+          strategy:
+            name: "momentum_strategy" 
+            version: "1.0"
+            signal_type: "entry"
+          action: "sell"
+          ticker: "{symbol}"
+          contracts: "{position_size}"
+          position_size: "{position_size}"
+          price: "{current_price}"
+          timestamp: "{timestamp}"
+          alert_name: "momentum_short_entry"
+          message: "Momentum short entry signal for {symbol} - RSI: {rsi}, Volume: {volume_ratio}x"
+        
+        long_exit:
+          strategy:
+            name: "momentum_strategy"
+            version: "1.0"
+            signal_type: "exit"
+          action: "sell"
+          ticker: "{symbol}"
+          contracts: "{position_size}"
+          position_size: "{position_size}"
+          price: "{current_price}"
+          timestamp: "{timestamp}"
+          alert_name: "momentum_long_exit"
+          message: "Momentum long exit signal for {symbol} - Reason: {exit_reason}"
+        
+        short_exit:
+          strategy:
+            name: "momentum_strategy"
+            version: "1.0"
+            signal_type: "exit"
+          action: "buy"
+          ticker: "{symbol}"
+          contracts: "{position_size}"
+          position_size: "{position_size}"
+          price: "{current_price}"
+          timestamp: "{timestamp}"
+          alert_name: "momentum_short_exit"
+          message: "Momentum short exit signal for {symbol} - Reason: {exit_reason}"
+
+  # Logging and monitoring
+  logging:
+    level: "INFO"
+    file: "/var/log/kairos/momentum_strategy.log"
+    max_size: "100MB"
+    backup_count: 5
+  
+  # Error handling
+  error_handling:
+    max_retries: 3
+    retry_delay: 30  # seconds
+    fallback_action: "log_and_continue"
+    
+    # Notification channels for errors
+    notifications:
+      - type: "webhook"
+        url: "http://localhost:8000/api/v1/alerts"
+        payload:
+          alert_type: "strategy_error"
+          strategy: "momentum_strategy"
+          message: "Strategy execution failed: {error_message}"
+
+# Environment variables for sensitive data
+environment:
+  DATAHUB_URL: "http://localhost:8000"
+  TRADIER_API_KEY: "${TRADIER_API_KEY}"
+  ALERT_WEBHOOK_SECRET: "${TRADINGVIEW_WEBHOOK_SECRET}"
+
+# Resource limits
+resources:
+  memory_limit: "512MB"
+  cpu_limit: "0.5"
+  execution_timeout: "300s"  # 5 minutes max execution time
