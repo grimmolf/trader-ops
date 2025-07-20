@@ -402,3 +402,167 @@ class TastytradeManager:
     async def __aexit__(self, exc_type, exc_val, exc_tb):
         """Async context manager exit"""
         await self.close()
+    
+    async def execute_alert(self, alert: Any) -> Dict[str, Any]:
+        """
+        Execute a TradingView alert for paper trading integration.
+        
+        This method provides compatibility with the paper trading router
+        by accepting TradingView alert objects and executing them as orders.
+        
+        Args:
+            alert: TradingViewAlert object with order details
+            
+        Returns:
+            Dict[str, Any]: Execution result with status and order details
+        """
+        try:
+            # Get available accounts for order placement
+            accounts = await self.get_accounts()
+            if not accounts:
+                return {
+                    "status": "error",
+                    "reason": "No Tastytrade accounts available",
+                    "details": {}
+                }
+            
+            # Use first available account (sandbox should have test accounts)
+            account_number = accounts[0].get("account-number", accounts[0].get("id", ""))
+            if not account_number:
+                return {
+                    "status": "error", 
+                    "reason": "Invalid account information",
+                    "details": {}
+                }
+            
+            # Convert alert to order parameters
+            symbol = alert.symbol
+            action = alert.action.lower()
+            quantity = int(alert.quantity)
+            order_type = getattr(alert, 'order_type', 'market')
+            price = getattr(alert, 'price', None)
+            
+            # Determine order action
+            if action in ["buy", "long"]:
+                if order_type.lower() == "market":
+                    result = await self.buy_stock(
+                        account_number=account_number,
+                        symbol=symbol,
+                        quantity=quantity,
+                        order_type=OrderType.MARKET
+                    )
+                else:  # limit order
+                    if price is None:
+                        return {
+                            "status": "error",
+                            "reason": "Limit price required for limit orders",
+                            "details": {}
+                        }
+                    result = await self.buy_stock(
+                        account_number=account_number,
+                        symbol=symbol,
+                        quantity=quantity,
+                        order_type=OrderType.LIMIT,
+                        price=Decimal(str(price))
+                    )
+            elif action in ["sell", "short"]:
+                if order_type.lower() == "market":
+                    result = await self.sell_stock(
+                        account_number=account_number,
+                        symbol=symbol,
+                        quantity=quantity,
+                        order_type=OrderType.MARKET
+                    )
+                else:  # limit order
+                    if price is None:
+                        return {
+                            "status": "error",
+                            "reason": "Limit price required for limit orders",
+                            "details": {}
+                        }
+                    result = await self.sell_stock(
+                        account_number=account_number,
+                        symbol=symbol,
+                        quantity=quantity,
+                        order_type=OrderType.LIMIT,
+                        price=Decimal(str(price))
+                    )
+            else:
+                return {
+                    "status": "error",
+                    "reason": f"Unsupported action: {action}",
+                    "details": {}
+                }
+            
+            # Parse Tastytrade response
+            if result and "order" in result:
+                order_info = result["order"]
+                order_status = order_info.get("status", "unknown")
+                
+                # For sandbox, assume immediate fill for market orders
+                if order_type.lower() == "market" and order_status in ["received", "routed"]:
+                    fill_price = price if price else await self._get_market_price(symbol)
+                    
+                    return {
+                        "status": "success",
+                        "order": {
+                            "id": order_info.get("id", ""),
+                            "status": "filled"
+                        },
+                        "fill": {
+                            "price": float(fill_price) if fill_price else 0.0,
+                            "quantity": quantity,
+                            "commission": 0.0,  # Sandbox typically has no commissions
+                            "slippage": 0.001   # Minimal slippage in sandbox
+                        },
+                        "execution": {
+                            "account": account_number,
+                            "broker": "tastytrade_sandbox",
+                            "timestamp": datetime.utcnow().isoformat()
+                        },
+                        "message": f"Tastytrade sandbox order executed: {symbol} {action} {quantity}"
+                    }
+                else:
+                    return {
+                        "status": "success",
+                        "order": {
+                            "id": order_info.get("id", ""),
+                            "status": order_status
+                        },
+                        "execution": {
+                            "account": account_number,
+                            "broker": "tastytrade_sandbox",
+                            "timestamp": datetime.utcnow().isoformat()
+                        },
+                        "message": f"Tastytrade sandbox order placed: {symbol} {action} {quantity}"
+                    }
+            else:
+                return {
+                    "status": "error",
+                    "reason": "Order placement failed",
+                    "details": result
+                }
+                
+        except Exception as e:
+            logger.error(f"Failed to execute Tastytrade alert: {e}")
+            return {
+                "status": "error",
+                "reason": f"Execution error: {str(e)}",
+                "details": {}
+            }
+    
+    async def _get_market_price(self, symbol: str) -> Optional[Decimal]:
+        """Get current market price for a symbol"""
+        try:
+            quote = await self.get_quote(symbol)
+            if quote and hasattr(quote, 'last_price') and quote.last_price:
+                return Decimal(str(quote.last_price))
+            elif quote and hasattr(quote, 'bid') and hasattr(quote, 'ask'):
+                # Use mid-price if no last price available
+                if quote.bid and quote.ask:
+                    return (Decimal(str(quote.bid)) + Decimal(str(quote.ask))) / 2
+        except Exception as e:
+            logger.warning(f"Could not get market price for {symbol}: {e}")
+        
+        # Return None if unable to get price
+        return None

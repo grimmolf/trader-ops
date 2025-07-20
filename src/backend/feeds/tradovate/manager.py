@@ -124,14 +124,15 @@ class TradovateManager:
                 "error": str(e)
             }
     
-    async def execute_alert(self, alert_data: Dict[str, Any]) -> Dict[str, Any]:
+    async def execute_alert(self, alert: Any) -> Dict[str, Any]:
         """
         Execute a TradingView alert through Tradovate.
         
         This is the main entry point for webhook-driven trading.
+        Compatible with paper trading router interface.
         
         Args:
-            alert_data: Alert data from TradingView webhook
+            alert: TradingViewAlert object or dict with alert data
             
         Returns:
             Dict[str, Any]: Execution result
@@ -143,13 +144,32 @@ class TradovateManager:
             }
         
         try:
-            logger.info(f"Executing alert: {alert_data}")
+            logger.info(f"Executing alert: {alert}")
             
-            # Extract alert parameters
-            symbol = alert_data.get("symbol", "").upper()
-            action = alert_data.get("action", "").lower()
-            quantity = alert_data.get("quantity", 1)
-            account_group = alert_data.get("account_group", "main")
+            # Handle both TradingViewAlert objects and dictionaries
+            if hasattr(alert, 'symbol'):
+                # TradingViewAlert object
+                symbol = alert.symbol.upper()
+                action = alert.action.lower()
+                quantity = alert.quantity
+                account_group = getattr(alert, 'account_group', 'main')
+                alert_data = {
+                    'symbol': symbol,
+                    'action': action,
+                    'quantity': quantity,
+                    'account_group': account_group,
+                    'order_type': getattr(alert, 'order_type', 'market'),
+                    'price': getattr(alert, 'price', None),
+                    'strategy': getattr(alert, 'strategy', None),
+                    'comment': getattr(alert, 'comment', None)
+                }
+            else:
+                # Dictionary format (for backward compatibility)
+                alert_data = alert
+                symbol = alert_data.get("symbol", "").upper()
+                action = alert_data.get("action", "").lower()
+                quantity = alert_data.get("quantity", 1)
+                account_group = alert_data.get("account_group", "main")
             
             # Validate parameters
             if not symbol or not action:
