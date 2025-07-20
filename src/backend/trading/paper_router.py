@@ -464,21 +464,51 @@ class PaperTradingRouter:
         Execute alert compatible with webhook processor interface.
         
         This method provides compatibility with the webhook receiver that expects
-        an execute_alert method from broker connectors.
+        an execute_alert method from broker connectors. Handles both TradingViewAlert
+        objects and dictionary representations.
         """
         try:
             # Convert execution request to paper trading alert
-            # Assuming execution_request has similar structure to TradingViewAlert
+            # Handle both object attributes and dictionary keys
+            if hasattr(execution_request, 'symbol'):
+                # Object with attributes
+                symbol = execution_request.symbol
+                action = execution_request.action
+                quantity = execution_request.quantity
+                order_type = getattr(execution_request, 'order_type', 'market')
+                price = getattr(execution_request, 'price', None)
+                stop_price = getattr(execution_request, 'stop_price', None)
+                account_group = getattr(execution_request, 'account_group', 'paper_simulator')
+                strategy = getattr(execution_request, 'strategy', None)
+                comment = getattr(execution_request, 'comment', 'Webhook alert')
+            elif isinstance(execution_request, dict):
+                # Dictionary representation
+                symbol = execution_request.get('symbol')
+                action = execution_request.get('action')
+                quantity = execution_request.get('quantity')
+                order_type = execution_request.get('order_type', 'market')
+                price = execution_request.get('price')
+                stop_price = execution_request.get('stop_price')
+                account_group = execution_request.get('account_group', 'paper_simulator')
+                strategy = execution_request.get('strategy')
+                comment = execution_request.get('comment', 'Webhook alert')
+            else:
+                raise ValueError(f"Unsupported execution_request type: {type(execution_request)}")
+            
+            # Validate required fields
+            if not symbol or not action or quantity is None:
+                raise ValueError("Missing required fields: symbol, action, quantity")
+            
             alert = PaperTradingAlert(
-                symbol=execution_request.symbol,
-                action=execution_request.action,
-                quantity=execution_request.quantity,
-                order_type=getattr(execution_request, 'order_type', 'market'),
-                price=getattr(execution_request, 'price', None),
-                stop_price=getattr(execution_request, 'stop_price', None),
-                account_group=getattr(execution_request, 'account_group', 'paper_simulator'),
-                strategy=getattr(execution_request, 'strategy', None),
-                comment=getattr(execution_request, 'comment', 'Webhook alert')
+                symbol=symbol,
+                action=action,
+                quantity=quantity,
+                order_type=order_type,
+                price=price,
+                stop_price=stop_price,
+                account_group=account_group,
+                strategy=strategy,
+                comment=comment
             )
             
             # Route alert through paper trading system

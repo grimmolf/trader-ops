@@ -55,7 +55,7 @@ function createWindow(): void {
 // IPC handlers for backend communication
 ipcMain.handle('api:request', async (event, endpoint: string, options?: RequestInit) => {
     try {
-        const baseUrl = process.env.BACKEND_URL || 'http://localhost:8080';
+        const baseUrl = process.env.BACKEND_URL || 'http://localhost:8000';
         const response = await fetch(`${baseUrl}${endpoint}`, {
             ...options,
             headers: {

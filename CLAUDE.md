@@ -172,6 +172,48 @@ Total NEW monthly cost: **$41/month** (user already has main services)
 
 You are **Claude**, acting as an orchestrator for the TraderTerminal project.
 
+### Subagent Configuration
+This project follows the global subagent configuration:
+- **Planning Agent (o3)**: Break complex tasks into executable steps, coordinate multi-broker integrations
+- **Analysis Agent (Gemini Pro)**: Analyze large API documentation (≥300 KB), process market data structures
+- **Scaling**: N = ceil(estimated_task_tokens / effective_context_window)
+- **Triggers**: Automatically spawn subagents for files > 300KB or token count > 2500
+
+When working on complex broker integrations or analyzing large API responses, delegate to appropriate subagents:
+- Use `/plan` flag for multi-step broker integrations
+- Use `/analyze-large` flag for processing API documentation or market data structures
+
+### Development Logging Requirements
+**CRITICAL**: All development work MUST maintain the development log at `docs/CLAUDE_DEVELOPMENT_LOG.md`
+
+Before each significant change:
+1. Update the development log with:
+   - **Context**: What problem are you solving?
+   - **Changes**: Bullet list of key changes
+   - **Validation**: How did you test?
+2. Track progress in `docs/development-logs/` directory [[memory:3819249]]
+3. Use `[skip-dev-log]` flag only for emergency fixes
+
+### Red Hat Security Practices
+Apply Red Hat security baseline to all code:
+
+#### Credentials Management
+- ✓ Environment variables for all API keys (TRADOVATE_API_KEY, SCHWAB_CLIENT_ID, etc.)
+- ✓ Secrets rotation every 90 days (document in security log)
+- ✓ Never commit credentials (enforced via .gitignore)
+
+#### Dependencies & Runtime
+- ✓ Run vulnerability scanners in CI (bandit for Python, npm audit for JS)
+- ✓ Pin all versions in uv.lock and package-lock.json
+- ✓ Non-root containers only (USER 1000:1000 in Dockerfiles)
+- ✓ Rate limiting on all API endpoints (implemented in FastAPI)
+- ✓ Pydantic validation for all inputs
+
+#### Audit & Compliance
+- ✓ Security event logging (90-day retention)
+- ✓ Quarterly dependency updates (tracked in CHANGELOG.md)
+- ✓ OAuth2 token refresh logging
+
 ### Goal
 - Focus on **critical path**: Futures trading through funded accounts
 - Leverage user's **existing services** (TradingView Premium, Tradovate, Schwab)
@@ -183,26 +225,36 @@ You are **Claude**, acting as an orchestrator for the TraderTerminal project.
 ✓ Reading & writing repo files  
 ✓ Container orchestration via Podman  
 ✓ Using TradingView webhooks (user has Premium)
+✓ Delegating to subagents for complex analysis
 
 ### Forbidden
-✗ Implementing TradingView charting library (use webhooks instead)
 ✗ Building Rithmic data integration (user uses Tradovate/NinjaTrader)
 ✗ Complex multi-feed aggregation (use direct connections)
 ✗ Hallucinating paths or docs—mark `TODO:` if unsure  
 ✗ Hard-coding API keys or credentials  
+✗ Skipping development log updates
+✗ Running containers as root user
 
 ### Warnings
 - User trades futures on funded accounts (TopStep, Apex, TradeDay)
 - macOS is primary platform, Fedora is secondary
 - Focus on execution and risk management over charting
 - Respect funded account rules (drawdown limits, position sizing)
+- Always validate broker API responses with Pydantic models
 
 ## Development Guidelines
+
+### Pre-Commit Workflow
+1. Run tests: `pytest tests/`
+2. Update development log: `docs/CLAUDE_DEVELOPMENT_LOG.md`
+3. Security scan: `bandit -r src/backend/`
+4. Update progress tracking in `docs/development-logs/`
 
 ### Code Style
 - **Python**: Type hints everywhere, Pydantic for validation, async/await for I/O
 - **TypeScript**: Strict mode, Vue 3 Composition API, no any types
 - **Documentation**: Docstrings for all public functions, README for each module
+- **Security**: Follow Red Hat security baseline for all implementations
 
 ### Testing Requirements
 - Unit tests for all business logic (pytest)
@@ -211,11 +263,27 @@ You are **Claude**, acting as an orchestrator for the TraderTerminal project.
 - Minimum 80% code coverage
 
 ### Security Practices
-- Never commit API keys or secrets
-- Use environment variables for all configuration
-- Implement rate limiting on all endpoints
-- Validate all user inputs with Pydantic
-- Run containers as non-root user
+
+#### API Key Management
+- All broker credentials stored in environment variables
+- OAuth2 refresh tokens encrypted at rest
+- Automatic token rotation with audit logging
+- Rate limiting per Red Hat standards:
+  - 100 requests/minute for authenticated users
+  - 10 requests/minute for webhooks
+  - Circuit breakers for broker APIs
+
+#### Container Security
+- Non-root user (1000:1000) in all containers
+- Read-only root filesystem where possible
+- Security scanning in CI pipeline
+- Minimal base images (distroless preferred)
+
+#### Input Validation
+- Pydantic models for ALL external inputs
+- Webhook signature verification (HMAC-SHA256)
+- Order size validation against funded account rules
+- SQL injection prevention via parameterized queries
 
 ### Git Workflow
 - Feature branches from `main`
@@ -261,23 +329,25 @@ trader-ops/
 ## Quick Start Commands
 
 ```bash
-# Backend development
+# Backend development with security checks
 cd src/backend
 uv sync
+bandit -r .  # Security scan
 uv run uvicorn src.backend.datahub.server:app --reload
 
 # Test with mock data immediately
 # Then implement Tradovate connector
 
-# Frontend development
+# Frontend development with audit
 cd src/frontend
 npm install
+npm audit fix  # Fix vulnerabilities
 npm run dev
 
 # Critical path testing
-# 1. Set up TradingView webhook
-# 2. Test Tradovate connection
-# 3. Test funded account rules
+# 1. Set up TradingView webhook with HMAC verification
+# 2. Test Tradovate connection with rate limiting
+# 3. Test funded account rules with Pydantic validation
 ```
 
 ## Related Projects
@@ -323,4 +393,4 @@ The MVP will be considered successful when:
 
 ---
 
-*This CLAUDE.md reflects the user's actual trading setup and critical path priorities. Focus on funded account futures trading first, then expand to stocks/options.* 
+*This CLAUDE.md reflects the user's actual trading setup and critical path priorities. Focus on funded account futures trading first, then expand to stocks/options. All development must follow global Claude configuration including subagents, development logging, and Red Hat security practices.* 

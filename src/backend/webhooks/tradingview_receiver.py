@@ -30,14 +30,16 @@ logger = logging.getLogger(__name__)
 # Global instances - will be set by server initialization
 _settings = None
 _tradovate_manager = None
+_topstepx_manager = None
 _connection_manager = None
 
 
-def set_global_instances(settings, tradovate_manager, connection_manager):
+def set_global_instances(settings, tradovate_manager, connection_manager, topstepx_manager=None):
     """Set global instances from server startup"""
-    global _settings, _tradovate_manager, _connection_manager
+    global _settings, _tradovate_manager, _topstepx_manager, _connection_manager
     _settings = settings
     _tradovate_manager = tradovate_manager
+    _topstepx_manager = topstepx_manager
     _connection_manager = connection_manager
 
 # Router for webhook endpoints
@@ -262,6 +264,10 @@ async def process_tradingview_alert(
             if alert.strategy:
                 await _record_strategy_trade_result(alert, execution_result, strategy_override_applied)
             
+            # Report trade execution to TopstepX if this is a funded account
+            if _is_funded_account(original_account_group) and _topstepx_manager:
+                await _report_trade_to_topstepx(original_account_group, alert, execution_result)
+            
             # Broadcast update to connected clients
             await _broadcast_execution_update(alert, execution_result)
             
@@ -341,10 +347,91 @@ async def _check_funded_account_rules(alert: TradingViewAlert) -> tuple[bool, Op
     Returns:
         tuple: (can_trade, rejection_reason)
     """
-    # TODO: Implement funded account rule checking
-    # This will connect to TopstepX API when available
     logger.info(f"Checking funded account rules for {alert.account_group}")
+    
+    # Check if TopstepX manager is available and this is a TopstepX account
+    if _topstepx_manager and alert.account_group.lower() in ["topstep", "topstepx"]:
+        try:
+            # Use TopstepX manager to validate the alert
+            validation_result = await _topstepx_manager.execute_alert(alert)
+            
+            if validation_result.get("status") == "rules_validated":
+                logger.info(f"TopstepX rules validated for {alert.account_group}: {validation_result.get('message')}")
+                return True, None
+            elif validation_result.get("status") == "rejected":
+                reason = validation_result.get("message", "TopstepX rules validation failed")
+                logger.warning(f"TopstepX rules rejected alert: {reason}")
+                return False, reason
+            else:
+                # Error or unexpected status
+                reason = validation_result.get("message", "TopstepX validation error")
+                logger.error(f"TopstepX validation error: {reason}")
+                return False, reason
+                
+        except Exception as e:
+            logger.error(f"Error checking TopstepX rules: {e}")
+            return False, f"TopstepX rule check failed: {str(e)}"
+    
+    # For other funded accounts or when TopstepX is not available
+    # Implement basic funded account checks
+    if alert.account_group.lower() in ["apex", "tradeday", "fundedtrader"]:
+        logger.info(f"Using basic funded account rules for {alert.account_group}")
+        
+        # Basic checks - these would ideally connect to respective provider APIs
+        if alert.quantity > 5:  # Example: max 5 contracts
+            return False, f"Contract limit exceeded: {alert.quantity} > 5"
+        
+        # TODO: Implement provider-specific rule checking for Apex, TradeDay, etc.
+        logger.warning(f"Basic funded account validation for {alert.account_group} - full rules not implemented")
+        return True, None
+    
+    # Default: allow non-funded accounts
     return True, None
+
+
+async def _report_trade_to_topstepx(
+    account_group: str,
+    alert: TradingViewAlert,
+    execution_result: Dict[str, Any]
+):
+    """
+    Report completed trade execution to TopstepX for monitoring.
+    
+    Args:
+        account_group: Original account group before any routing changes
+        alert: The original TradingView alert
+        execution_result: Result from broker execution
+    """
+    try:
+        # Only report for TopstepX accounts
+        if account_group.lower() not in ["topstep", "topstepx"]:
+            return
+        
+        # Extract execution details
+        fill_data = execution_result.get("fill", {})
+        execution_price = fill_data.get("price", 0)
+        
+        if execution_price <= 0:
+            logger.warning("No valid execution price found for TopstepX reporting")
+            return
+        
+        # Report to TopstepX
+        success = await _topstepx_manager.report_trade_execution(
+            account_group,
+            alert.symbol,
+            alert.action,
+            alert.quantity,
+            float(execution_price),
+            execution_result
+        )
+        
+        if success:
+            logger.info(f"Trade reported to TopstepX: {alert.symbol} {alert.action} {alert.quantity} @ ${execution_price}")
+        else:
+            logger.warning(f"Failed to report trade to TopstepX: {alert.symbol} {alert.action}")
+            
+    except Exception as e:
+        logger.error(f"Error reporting trade to TopstepX: {e}")
 
 
 async def _record_strategy_trade_result(

@@ -73,11 +73,17 @@ setup_development() {
     echo "  • MongoDB: http://localhost:27017"
     echo "  • TradeNote: http://localhost:8082"
     echo ""
-    echo "Development credentials:"
-    echo "  • MongoDB User: tradenote"
-    echo "  • MongoDB Password: tradenote123"
-    echo "  • App ID: traderterminal_dev_123"
-    echo "  • Master Key: traderterminal_master_dev_456"
+    # Load credentials from .env if it exists so we can display them to the user
+    if [[ -f "$COMPOSE_DIR/.env" ]]; then
+        # shellcheck source=/dev/null
+        source "$COMPOSE_DIR/.env"
+    fi
+    echo "" 
+    echo "Development credentials (from .env):" 
+    echo "  • MongoDB User: ${MONGO_INITDB_ROOT_USERNAME:-tradenote}" 
+    echo "  • MongoDB Password: ${MONGO_INITDB_ROOT_PASSWORD:-<unset>}" 
+    echo "  • App ID: ${APP_ID:-<unset>}" 
+    echo "  • Master Key: ${MASTER_KEY:-<unset>}" 
     echo ""
     echo "To stop services: docker compose -f docker-compose.dev.yml down"
 }

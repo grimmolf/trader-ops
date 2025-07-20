@@ -17,169 +17,60 @@ echo "Hooks directory: $HOOKS_DIR"
 # Ensure hooks directory exists
 mkdir -p "$HOOKS_DIR"
 
-# Create pre-commit hook
+echo "📝 Installing new pre-commit hook for single-file dev-log"
+
+# Remove old hooks if they exist
+rm -f "$HOOKS_DIR/pre-commit" "$HOOKS_DIR/post-commit"
+
 cat > "$HOOKS_DIR/pre-commit" << 'EOF'
-#!/bin/bash
-# Development Logging Pre-Commit Hook
-# Prompts for development log before committing
+#!/usr/bin/env bash
+# New Development Log Pre-commit Hook (single-file version)
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
-LOG_SCRIPT="$PROJECT_ROOT/scripts/dev-logging/log-prompt.py"
+LOG_FILE="docs/CLAUDE_DEVELOPMENT_LOG.md"
 
-# Check if dev logging is enabled
-if [ -f "$PROJECT_ROOT/.dev-logging-config" ]; then
-    source "$PROJECT_ROOT/.dev-logging-config"
-fi
-
-# Default configuration
-DEV_LOGGING_ENABLED=${DEV_LOGGING_ENABLED:-true}
-DEV_LOGGING_MODE=${DEV_LOGGING_MODE:-"pre-commit"}
-DEV_LOGGING_SKIP_PROMPT=${DEV_LOGGING_SKIP_PROMPT:-false}
-
-# Skip if disabled
-if [ "$DEV_LOGGING_ENABLED" != "true" ]; then
+# Skip on merge / rebase
+if [[ -n "$GIT_MERGE_HEAD" || -n "$GIT_REBASE_HEAD" ]]; then
     exit 0
 fi
 
-# Skip if not in pre-commit mode
-if [ "$DEV_LOGGING_MODE" != "pre-commit" ]; then
-    exit 0
-fi
-
-# Check if this is a merge commit or other automated commit
-if [ -n "$GIT_MERGE_HEAD" ] || [ -n "$GIT_CHERRY_PICK_HEAD" ] || [ -n "$GIT_REVERT_HEAD" ]; then
-    echo "⏩ Skipping development log for automated commit"
-    exit 0
-fi
-
-# Check for bypass flag
-if git rev-parse --verify HEAD >/dev/null 2>&1; then
-    if git log -1 --pretty=%B | grep -q "\[skip-dev-log\]"; then
-        echo "⏩ Skipping development log due to [skip-dev-log] flag"
-        exit 0
-    fi
-fi
-
-# Check if there are any staged changes
-if ! git diff --cached --quiet; then
-    echo ""
-    echo "📝 Development Log Required"
-    echo "============================"
-    echo "Staged changes detected. Capturing development context..."
-    echo ""
-    echo "💡 Tips:"
-    echo "  - Provide detailed information for reproducibility"
-    echo "  - Include reasoning behind technical decisions"
-    echo "  - Add [skip-dev-log] to commit message to bypass next time"
-    echo "  - Use 'git commit --no-verify' to skip hooks entirely"
-    echo ""
-    
-    if [ "$DEV_LOGGING_SKIP_PROMPT" != "true" ]; then
-        read -p "Continue with development log? (Y/n): " -n 1 -r
-        echo
-        if [[ $REPLY =~ ^[Nn]$ ]]; then
-            echo "❌ Commit cancelled. Use 'git commit --no-verify' to bypass."
-            exit 1
-        fi
-    fi
-    
-    # Run the development logging script
-    if [ -f "$LOG_SCRIPT" ]; then
-        python3 "$LOG_SCRIPT"
-        LOG_EXIT_CODE=$?
-        
-        if [ $LOG_EXIT_CODE -ne 0 ]; then
-            echo "❌ Development logging failed or was cancelled."
-            echo "   Use 'git commit --no-verify' to bypass if needed."
-            exit 1
-        fi
-    else
-        echo "⚠️  Development logging script not found: $LOG_SCRIPT"
-        echo "   Run ./scripts/dev-logging/setup-hooks.sh to set up properly."
-    fi
-fi
-
-exit 0
-EOF
-
-# Create post-commit hook
-cat > "$HOOKS_DIR/post-commit" << 'EOF'
-#!/bin/bash
-# Development Logging Post-Commit Hook
-# Prompts for development log after successful commit
-
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
-LOG_SCRIPT="$PROJECT_ROOT/scripts/dev-logging/log-prompt.py"
-
-# Check if dev logging is enabled
-if [ -f "$PROJECT_ROOT/.dev-logging-config" ]; then
-    source "$PROJECT_ROOT/.dev-logging-config"
-fi
-
-# Default configuration
-DEV_LOGGING_ENABLED=${DEV_LOGGING_ENABLED:-true}
-DEV_LOGGING_MODE=${DEV_LOGGING_MODE:-"pre-commit"}
-DEV_LOGGING_SKIP_PROMPT=${DEV_LOGGING_SKIP_PROMPT:-false}
-
-# Skip if disabled
-if [ "$DEV_LOGGING_ENABLED" != "true" ]; then
-    exit 0
-fi
-
-# Skip if not in post-commit mode
-if [ "$DEV_LOGGING_MODE" != "post-commit" ]; then
-    exit 0
-fi
-
-# Check if this is a merge commit or other automated commit
-if [ -n "$GIT_MERGE_HEAD" ] || [ -n "$GIT_CHERRY_PICK_HEAD" ] || [ -n "$GIT_REVERT_HEAD" ]; then
-    echo "⏩ Skipping development log for automated commit"
-    exit 0
-fi
-
-# Check for bypass flag in the commit message
+# Skip if commit has [skip-dev-log]
 if git log -1 --pretty=%B | grep -q "\[skip-dev-log\]"; then
-    echo "⏩ Skipping development log due to [skip-dev-log] flag"
     exit 0
 fi
 
-echo ""
-echo "📝 Post-Commit Development Log"
-echo "==============================="
-echo "Commit successful! Capturing development context..."
-echo ""
+# Only run if there are staged changes
+git diff --cached --quiet && exit 0
 
-if [ "$DEV_LOGGING_SKIP_PROMPT" != "true" ]; then
-    read -p "Create development log for this commit? (Y/n): " -n 1 -r
-    echo
-    if [[ $REPLY =~ ^[Nn]$ ]]; then
-        echo "⏩ Development log skipped."
-        exit 0
-    fi
+# Ensure log file exists
+if [[ ! -f "$LOG_FILE" ]]; then
+    mkdir -p "$(dirname "$LOG_FILE")"
+    cat > "$LOG_FILE" <<'MARK'
+# Trader Ops - Claude Code Development Log
+
+### [YYYY-MM-DD HH:MM] - [branch] - [Short summary]
+**Context:** _What problem are you solving?_
+**Changes:** _Bullet list of key changes._
+**Validation:** _How did you test?_
+
+---
+MARK
 fi
 
-# Run the development logging script
-if [ -f "$LOG_SCRIPT" ]; then
-    python3 "$LOG_SCRIPT"
-    LOG_EXIT_CODE=$?
-    
-    if [ $LOG_EXIT_CODE -ne 0 ]; then
-        echo "⚠️  Development logging failed or was cancelled."
-        echo "   This doesn't affect your commit, which was successful."
-    fi
-else
-    echo "⚠️  Development logging script not found: $LOG_SCRIPT"
-    echo "   Run ./scripts/dev-logging/setup-hooks.sh to set up properly."
-fi
+echo "📝 Please update $LOG_FILE before committing. Press ENTER to open editor (CTRL+C to cancel)"
+read -r _
+
+${EDITOR:-nano} "$LOG_FILE"
+
+# Stage the log file
+git add "$LOG_FILE"
 
 exit 0
 EOF
 
-# Make hooks executable
+# Make executable
 chmod +x "$HOOKS_DIR/pre-commit"
-chmod +x "$HOOKS_DIR/post-commit"
+
+echo "✅ New pre-commit hook installed (old hooks removed)"
 
 # Create default configuration file
 cat > "$PROJECT_ROOT/.dev-logging-config" << 'EOF'

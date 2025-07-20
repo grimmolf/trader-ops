@@ -36,6 +36,9 @@ from ..models.execution import Order, Execution, Position, Account
 from ..feeds.tradier import TradierConnector
 from ..feeds.tradovate.manager import TradovateManager
 from ..feeds.tradovate.auth import TradovateCredentials
+from ..feeds.topstepx.manager import TopstepXManager
+from ..feeds.topstepx.auth import TopstepXCredentials
+from ..feeds.topstepx import api as topstepx_api
 from ..services.backtest_service import (
     BacktestService, BacktestRequest, BacktestJob, BacktestStatus, get_backtest_service
 )
@@ -69,8 +72,18 @@ class Settings(BaseSettings):
     tradovate_app_id: Optional[str] = None
     tradovate_demo: bool = True
     
+    # TopstepX configuration
+    topstepx_api_key: Optional[str] = None
+    topstepx_username: Optional[str] = None
+    topstepx_environment: str = "DEMO"  # LIVE or DEMO
+    
     # CORS settings
-    cors_origins: List[str] = ["http://localhost:5173", "http://localhost:3000"]
+    cors_origins: List[str] = [
+        "http://localhost:5173", 
+        "http://localhost:3000",
+        "http://localhost:8000",
+        "http://localhost:8080"
+    ]
     
     # Static file serving for web deployment
     static_files_enabled: bool = True
@@ -87,6 +100,11 @@ class Settings(BaseSettings):
 # Global state
 settings = Settings()
 logger = logging.getLogger(__name__)
+
+# Data connectors and managers
+tradier_connector: Optional[TradierConnector] = None
+tradovate_manager: Optional[TradovateManager] = None
+topstepx_manager: Optional[TopstepXManager] = None
 
 # WebSocket connection manager
 class ConnectionManager:
@@ -247,7 +265,7 @@ async def broadcast_mock_data():
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Application startup and shutdown"""
-    global tradier_connector, tradovate_manager
+    global tradier_connector, tradovate_manager, topstepx_manager
     
     # Startup
     logger.info("Starting DataHub server...")
@@ -282,8 +300,29 @@ async def lifespan(app: FastAPI):
     else:
         logger.warning("Tradovate credentials not provided - futures trading unavailable")
     
+    # Initialize TopstepX manager
+    if settings.topstepx_api_key and settings.topstepx_username:
+        try:
+            topstepx_credentials = TopstepXCredentials(
+                api_key=settings.topstepx_api_key,
+                username=settings.topstepx_username,
+                environment=settings.topstepx_environment
+            )
+            topstepx_manager = TopstepXManager(topstepx_credentials)
+            await topstepx_manager.initialize()
+            
+            # Set TopstepX manager in the API router
+            topstepx_api.set_topstepx_manager(topstepx_manager)
+            
+            logger.info(f"TopstepX manager initialized for {settings.topstepx_environment} environment")
+        except Exception as e:
+            logger.error(f"Failed to initialize TopstepX manager: {e}")
+            topstepx_manager = None
+    else:
+        logger.warning("TopstepX credentials not provided - funded account monitoring unavailable")
+    
     # Set global instances for webhook processor
-    set_global_instances(settings, tradovate_manager, connection_manager)
+    set_global_instances(settings, tradovate_manager, connection_manager, topstepx_manager)
     logger.info("Webhook processor configured with global instances")
     
     # Initialize strategy performance API
@@ -410,6 +449,9 @@ app.include_router(paper_trading_router)
 # Include strategy performance router
 app.include_router(strategy_performance_router)
 
+# Include TopstepX API router
+app.include_router(topstepx_api.router)
+
 
 # Health check
 @app.get("/health")
@@ -421,6 +463,7 @@ async def health_check():
         "version": "1.0.0",
         "tradier_connected": tradier_connector is not None,
         "tradovate_connected": tradovate_manager is not None,
+        "topstepx_connected": topstepx_manager is not None,
         "active_connections": len(connection_manager.active_connections)
     }
 

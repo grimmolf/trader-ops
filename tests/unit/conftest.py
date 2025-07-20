@@ -13,7 +13,7 @@ from typing import Dict, Any, List, Optional
 from datetime import datetime, timedelta
 
 # Import the classes we'll be testing
-from src.backend.feeds.tradovate.auth import TradovateAuth, TradovateCredentials, TokenResponse
+from src.backend.feeds.tradovate.auth import TradovateAuth, TradovateCredentials, TradovateTokens
 from src.backend.feeds.tradovate.market_data import TradovateMarketData, TradovateQuote
 from src.backend.feeds.tradovate.orders import TradovateOrders, OrderType, TradovateOrderResponse
 from src.backend.feeds.tradovate.account import TradovateAccount, TradovateAccountInfo, CashBalance, Position
@@ -26,8 +26,7 @@ def demo_credentials():
     return TradovateCredentials(
         username="demo_user",
         password="demo_password",
-        api_key="demo_api_key",
-        api_secret="demo_api_secret",
+        app_id="demo_app_id",
         demo=True
     )
 
@@ -38,8 +37,7 @@ def live_credentials():
     return TradovateCredentials(
         username="live_user", 
         password="live_password",
-        api_key="live_api_key",
-        api_secret="live_api_secret",
+        app_id="live_app_id",
         demo=False
     )
 

@@ -3,6 +3,11 @@
   "version": "0.1.0",
   "description": "Cross-Platform Trading Dashboard Desktop Application",
   "main": "build/main.js",
+  "workspaces": [
+    "apps/*",
+    "packages/*",
+    "src/frontend"
+  ],
   "scripts": {
     "start": "./scripts/quick-start.sh",
     "setup": "./scripts/setup_uv.sh",
@@ -12,8 +17,11 @@
     "dev": "concurrently \"npm run dev:main\" \"npm run dev:renderer\"",
     "dev:main": "tsc -p tsconfig.main.json -w",
     "dev:renderer": "vite",
-    "dev:backend": "uv run python -m uvicorn src.backend.server:app --reload --port 8000",
+    "dev:backend": "uv run python -m uvicorn src.backend.datahub.server:app --reload --port 8000",
+    "dev:web": "npm run dev --workspace=apps/web",
     "dev:full": "./scripts/start_dev.sh",
+    "build:web": "npm run build --workspace=apps/web",
+    "build:all": "npm run build:web && npm run build:main && npm run build:renderer",
     "electron": "electron build/main.js",
     "electron:dev": "electron build/main.js --dev",
     "pack": "electron-builder --dir",

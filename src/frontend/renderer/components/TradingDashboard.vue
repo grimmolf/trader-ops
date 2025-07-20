@@ -205,7 +205,7 @@ const centerPanelWidth = computed(() => {
 })
 
 // Configuration
-const datafeedUrl = 'http://localhost:8080/udf'
+const datafeedUrl = 'http://localhost:8000/udf'
 const activeAlerts = ref([])
 const showWindowControls = computed(() => appStore.platform === 'darwin')
 

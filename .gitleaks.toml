@@ -1,0 +1,10 @@
+[allowlist]
+description = "Global allowlist for placeholder dev credentials"
+paths = [
+  '''deployment/compose/env.example'''
+]
+regexes = [
+  '''examplepassword''',
+  '''example_master_key''',
+  '''traderterminal_dev_example'''
+] 

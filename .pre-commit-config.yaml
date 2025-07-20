@@ -1,0 +1,7 @@
+repos:
+  - repo: https://github.com/RedHatProductSecurity/rh-pre-commit
+    rev: v1.1.0  # keep in sync with InfoSec announcements
+    hooks:
+      - id: rh-gitleaks
+        additional_dependencies: []  # rh-pre-commit bundles its own gitleaks
+        args: ["--additional-config=.gitleaks.toml"] 

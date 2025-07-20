@@ -12,8 +12,7 @@ from datetime import datetime, timedelta
 import aiohttp
 
 from src.backend.feeds.tradovate.auth import (
-    TradovateAuth, TradovateCredentials, TokenResponse,
-    AuthenticationError
+    TradovateAuth, TradovateCredentials, TradovateTokens
 )
 
 
@@ -105,7 +104,7 @@ class TestTradovateAuth:
         assert not auth._authenticated
         assert auth.session is not None
     
-    @pytest_asyncio.async_test
+    @pytest.mark.asyncio
     async def test_successful_authentication(self, demo_credentials, valid_token_response):
         """Test successful authentication"""
         auth = TradovateAuth(demo_credentials)
@@ -129,7 +128,7 @@ class TestTradovateAuth:
             assert auth._authenticated is True
             assert auth.tokens is not None
     
-    @pytest_asyncio.async_test
+    @pytest.mark.asyncio
     async def test_authentication_failure(self, demo_credentials):
         """Test authentication failure"""
         auth = TradovateAuth(demo_credentials)
@@ -148,7 +147,7 @@ class TestTradovateAuth:
             assert not auth._authenticated
             assert auth.tokens is None
     
-    @pytest_asyncio.async_test
+    @pytest.mark.asyncio
     async def test_token_refresh(self, demo_credentials, valid_token_response):
         """Test token refresh functionality"""
         auth = TradovateAuth(demo_credentials)
@@ -173,7 +172,7 @@ class TestTradovateAuth:
             assert result.access_token == "new_access_token_12345"
             assert auth.tokens.access_token == "new_access_token_12345"
     
-    @pytest_asyncio.async_test
+    @pytest.mark.asyncio
     async def test_get_access_token_valid(self, demo_credentials, valid_token_response):
         """Test getting valid access token"""
         auth = TradovateAuth(demo_credentials)
@@ -183,7 +182,7 @@ class TestTradovateAuth:
         token = await auth.get_access_token()
         assert token == "valid_access_token_12345"
     
-    @pytest_asyncio.async_test
+    @pytest.mark.asyncio
     async def test_get_access_token_expired(self, demo_credentials, expired_token_response):
         """Test getting access token when expired"""
         auth = TradovateAuth(demo_credentials)
@@ -205,7 +204,7 @@ class TestTradovateAuth:
             token = await auth.get_access_token()
             assert token == "refreshed_access_token"
     
-    @pytest_asyncio.async_test
+    @pytest.mark.asyncio
     async def test_get_access_token_not_authenticated(self, demo_credentials):
         """Test getting access token when not authenticated"""
         auth = TradovateAuth(demo_credentials)
@@ -226,7 +225,7 @@ class TestTradovateAuth:
             assert token == "new_access_token"
             assert auth._authenticated is True
     
-    @pytest_asyncio.async_test
+    @pytest.mark.asyncio
     async def test_test_connection_success(self, demo_credentials):
         """Test successful connection test"""
         auth = TradovateAuth(demo_credentials)
@@ -254,7 +253,7 @@ class TestTradovateAuth:
                 assert result["status"] == "success"
                 assert "response_time" in result
     
-    @pytest_asyncio.async_test
+    @pytest.mark.asyncio
     async def test_test_connection_failure(self, demo_credentials):
         """Test connection test failure"""
         auth = TradovateAuth(demo_credentials)
@@ -270,7 +269,7 @@ class TestTradovateAuth:
             assert result["status"] == "failed"
             assert "error" in result
     
-    @pytest_asyncio.async_test
+    @pytest.mark.asyncio
     async def test_close_session(self, demo_credentials):
         """Test closing authentication session"""
         auth = TradovateAuth(demo_credentials)
@@ -281,7 +280,7 @@ class TestTradovateAuth:
         await auth.close()
         auth.session.close.assert_called_once()
     
-    @pytest_asyncio.async_test  
+    @pytest.mark.asyncio  
     async def test_make_authenticated_request(self, demo_credentials, valid_token_response):
         """Test making authenticated API requests"""
         auth = TradovateAuth(demo_credentials)
@@ -305,7 +304,7 @@ class TestTradovateAuth:
             assert 'Authorization' in headers
             assert headers['Authorization'] == 'Bearer valid_access_token_12345'
     
-    @pytest_asyncio.async_test
+    @pytest.mark.asyncio
     async def test_environment_urls(self):
         """Test demo vs live environment URLs"""
         demo_creds = TradovateCredentials(
@@ -325,7 +324,7 @@ class TestTradovateAuth:
 class TestAuthenticationEdgeCases:
     """Test edge cases and error conditions"""
     
-    @pytest_asyncio.async_test
+    @pytest.mark.asyncio
     async def test_network_timeout(self, demo_credentials):
         """Test handling of network timeouts"""
         auth = TradovateAuth(demo_credentials)
@@ -334,7 +333,7 @@ class TestAuthenticationEdgeCases:
             with pytest.raises(AuthenticationError):
                 await auth.authenticate()
     
-    @pytest_asyncio.async_test
+    @pytest.mark.asyncio
     async def test_malformed_response(self, demo_credentials):
         """Test handling of malformed API responses"""
         auth = TradovateAuth(demo_credentials)
@@ -348,7 +347,7 @@ class TestAuthenticationEdgeCases:
             with pytest.raises(AuthenticationError):
                 await auth.authenticate()
     
-    @pytest_asyncio.async_test
+    @pytest.mark.asyncio
     async def test_refresh_token_failure(self, demo_credentials, expired_token_response):
         """Test handling of refresh token failure"""
         auth = TradovateAuth(demo_credentials)
@@ -388,7 +387,7 @@ class TestAuthenticationEdgeCases:
 class TestAuthenticationIntegration:
     """Integration tests for authentication workflow"""
     
-    @pytest_asyncio.async_test
+    @pytest.mark.asyncio
     async def test_full_authentication_workflow(self, demo_credentials):
         """Test complete authentication workflow"""
         auth = TradovateAuth(demo_credentials)
@@ -428,7 +427,7 @@ class TestAuthenticationIntegration:
                 api_result = await auth.make_authenticated_request("GET", "/accounts")
                 assert "accounts" in api_result
     
-    @pytest_asyncio.async_test
+    @pytest.mark.asyncio
     async def test_concurrent_token_requests(self, demo_credentials, valid_token_response):
         """Test handling of concurrent token requests"""
         auth = TradovateAuth(demo_credentials)
