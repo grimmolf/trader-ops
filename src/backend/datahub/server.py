@@ -22,9 +22,11 @@ from typing import Dict, List, Optional, Set, Any
 import uvicorn
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException, Request, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, FileResponse
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, ValidationError
 from pydantic_settings import BaseSettings
+from pathlib import Path
 
 from ..models.market_data import (
     Candle, Quote, Symbol, HistoryRequest, HistoryResponse, TimeFrame
@@ -69,6 +71,11 @@ class Settings(BaseSettings):
     
     # CORS settings
     cors_origins: List[str] = ["http://localhost:5173", "http://localhost:3000"]
+    
+    # Static file serving for web deployment
+    static_files_enabled: bool = True
+    static_files_directory: str = "../../../apps/web/dist"
+    static_files_mount_path: str = "/"
     
     # Alert system
     chronos_webhook_url: str = "http://localhost:5000/webhook"
@@ -318,6 +325,81 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Static file serving for web deployment
+if settings.static_files_enabled:
+    # Get absolute path to static files
+    static_path = Path(__file__).parent / settings.static_files_directory
+    static_path = static_path.resolve()  # Convert to absolute path
+    
+    if static_path.exists():
+        logger.info(f"Serving static files from: {static_path}")
+        
+        # Mount static assets (JS, CSS, images) with cache headers
+        app.mount("/assets", StaticFiles(directory=static_path / "assets"), name="assets")
+        
+        # Serve individual static files
+        @app.get("/favicon.ico")
+        async def favicon():
+            favicon_path = static_path / "favicon.ico"
+            if favicon_path.exists():
+                return FileResponse(favicon_path)
+            raise HTTPException(status_code=404)
+        
+        # Root route to serve index.html
+        @app.get("/")
+        async def serve_spa():
+            """Serve the Single Page Application"""
+            index_path = static_path / "index.html"
+            if index_path.exists():
+                return FileResponse(index_path)
+            else:
+                return JSONResponse(
+                    status_code=404, 
+                    content={"detail": "Web app not built. Run: cd apps/web && npm run build"}
+                )
+        
+        # SPA fallback - serve index.html for client-side routing
+        @app.exception_handler(404)
+        async def spa_fallback_handler(request: Request, exc: HTTPException):
+            # Only serve index.html for non-API routes
+            path = request.url.path
+            
+            # Preserve API routes, WebSocket, UDF, and webhook endpoints
+            if (path.startswith("/api/") or 
+                path.startswith("/stream") or 
+                path.startswith("/udf/") or 
+                path.startswith("/webhook/") or
+                path.startswith("/assets/") or
+                path == "/favicon.ico"):
+                # Let these routes return 404 normally
+                return JSONResponse(status_code=404, content={"detail": "Not Found"})
+            
+            # For all other routes (SPA client-side routes), serve index.html
+            index_path = static_path / "index.html"
+            if index_path.exists():
+                return FileResponse(index_path)
+            else:
+                return JSONResponse(
+                    status_code=404, 
+                    content={"detail": "Web application files not found"}
+                )
+    else:
+        logger.warning(f"Static files directory not found: {static_path}")
+        logger.warning("Web serving disabled. To enable, build the web app: cd apps/web && npm run build")
+        
+        # Provide helpful message at root when static files aren't available
+        @app.get("/")
+        async def web_app_not_built():
+            return JSONResponse(
+                status_code=503,
+                content={
+                    "message": "Web application not available",
+                    "instructions": "Build the web app with: cd apps/web && npm run build",
+                    "api_available": True,
+                    "api_health": "/health"
+                }
+            )
 
 # Include webhook router
 app.include_router(tradingview_router)

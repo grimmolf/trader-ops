@@ -1,0 +1,38 @@
+{
+  "name": "@trader-terminal/web",
+  "version": "1.0.0",
+  "type": "module",
+  "private": true,
+  "description": "TraderTerminal Web Application - Standalone SPA for headless deployment",
+  "scripts": {
+    "dev": "vite --host 0.0.0.0 --port 5173",
+    "build": "vite build",
+    "preview": "vite preview --host 0.0.0.0 --port 4173",
+    "type-check": "vue-tsc --noEmit",
+    "lint": "eslint . --ext .vue,.js,.jsx,.cjs,.mjs,.ts,.tsx,.cts,.mts --fix --ignore-path .gitignore"
+  },
+  "dependencies": {
+    "vue": "^3.4.15",
+    "vue-router": "^4.2.5",
+    "pinia": "^2.1.7",
+    "@vueuse/core": "^10.7.1",
+    "axios": "^1.6.5",
+    "chart.js": "^4.4.1",
+    "date-fns": "^3.2.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.5",
+    "@vitejs/plugin-vue": "^5.0.3",
+    "@vue/tsconfig": "^0.5.1",
+    "eslint": "^8.56.0",
+    "@vue/eslint-config-typescript": "^12.0.0",
+    "@vue/eslint-config-prettier": "^9.0.0",
+    "prettier": "^3.2.4",
+    "typescript": "~5.3.3",
+    "vue-tsc": "^1.8.27",
+    "vite": "^5.0.11"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

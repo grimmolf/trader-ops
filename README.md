@@ -11,9 +11,9 @@
 
 ---
 
-## 🚀 **NEW: Professional Trade Journaling + Multi-Broker Integration!**
+## 🚀 **NEW: Web-First Architecture + Multi-Broker Integration!**
 
-**🎉 MAJOR MILESTONES**: TraderTerminal now includes **automated trade journaling** with rich analytics PLUS **4 major brokers** with production-ready integrations:
+**🎉 MAJOR MILESTONES**: TraderTerminal now features **webserver-first architecture** for cloud deployment PLUS **4 major brokers** with production-ready integrations:
 
 ### **✅ Integrated Brokers**
 - **🏦 Charles Schwab**: Stocks, ETFs, Options (Real-time data + Trading)
@@ -28,6 +28,14 @@
 - **Risk Management**: Funded account rules and position monitoring
 - **Professional Trade Journaling**: Automated logging with rich analytics
 - **Single Interface**: One platform, multiple brokers, maximum opportunity
+
+### **🌐 Flexible Deployment Options (NEW!)**
+- **🖥️ Desktop Application**: Full-featured Electron app for local trading
+- **☁️ Cloud/Web Deployment**: Browser-based trading from anywhere
+- **🐳 Container Ready**: Single FastAPI service for Docker/Kubernetes
+- **🏢 Multi-User Support**: Cloud deployment for teams and institutions
+- **📱 Cross-Platform Access**: Web interface works on any device
+- **⚡ Integrated Architecture**: One service provides both API and web interface
 
 **💰 Total Cost**: $41/month vs $24,000/year for Bloomberg Terminal (99.8% savings)
 
@@ -116,16 +124,27 @@ cd src/frontend && npm install  # Frontend dependencies
 
 ### 2. **Launch the Application**
 
-**Option A: Native Development**
+**Option A: Web-First Deployment (NEW! Recommended)**
+```bash
+# Build web application
+cd apps/web && npm install && npm run build
+
+# Start integrated web + API server
+cd ../.. && uv run python -m src.backend.datahub.server
+
+# Access at: http://localhost:8080 (web interface + API)
+```
+
+**Option B: Desktop Development**
 ```bash
 # Terminal 1: Start backend server
 PYTHONPATH=/path/to/trader-ops uv run uvicorn src.backend.datahub.server:app --host localhost --port 8080 --reload
 
-# Terminal 2: Start frontend (from src/frontend/)
+# Terminal 2: Start desktop frontend (from src/frontend/)
 npm run dev
 ```
 
-**Option B: Containerized Development (Recommended)**
+**Option C: Containerized Development**
 ```bash
 # One command starts everything with hot-reload
 ./deployment/scripts/dev-compose.sh start
@@ -145,9 +164,11 @@ npm run dev
 ```
 
 ### 4. **Access the Trading Platform**
-- **Desktop App**: Electron app launches automatically
-- **Web Access**: `http://localhost:5173` (development)
-- **API Server**: `http://localhost:8080` (backend)
+- **🌐 Web Interface**: `http://localhost:8080` (integrated web + API)
+- **🖥️ Desktop App**: Electron app launches automatically (Option B/C)
+- **⚡ Development Server**: `http://localhost:5173` (development mode)
+- **🔧 API Endpoints**: `http://localhost:8080/api` (REST API)
+- **📡 WebSocket**: `ws://localhost:8080/stream` (real-time data)
 - **TradeNote Journal**: `http://localhost:8082` (if enabled)
 - **Real-time Updates**: WebSocket streaming active
 
