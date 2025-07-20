@@ -32,10 +32,17 @@
 - **Custom Alerts**: Price, volume, and technical indicator notifications
 - **Historical Analysis**: Backtest strategies with detailed performance metrics
 
+### 🎯 **Funded Account Trading (NEW!)**
+- **TopStep Integration**: Complete rule enforcement for TopStep evaluation and funded accounts
+- **Apex & TradeDay Support**: Multi-platform funded account management
+- **Real-Time Risk Monitoring**: Live tracking of daily loss, drawdown, and position limits
+- **Emergency Controls**: Automatic position flattening on rule violations
+- **TradingView → Tradovate Pipeline**: Seamless alert-to-execution workflow
+
 ### 🛡️ **Enterprise-Grade Security & Reliability**
 - **Encrypted Communications**: All data transmission secured with TLS
 - **Local Data Storage**: Your trading data stays on your machine
-- **Multiple Broker Support**: Tradier (live), with Tradovate and others coming
+- **Multiple Broker Support**: Tradovate (futures), Tradier (stocks), with more coming
 - **Automatic Reconnection**: Never miss a trade due to connection issues
 - **Open Source**: Full transparency - audit the code yourself
 
@@ -43,7 +50,9 @@
 
 ## ⚡ **Quick Start - Get Trading in 5 Minutes**
 
-> **🎉 STATUS UPDATE**: TraderTerminal is now **100% complete** with full production deployment! Frontend, backend, and containerization all implemented with institutional-grade quality.
+> **🎯 MAJOR UPDATE**: TraderTerminal now supports **complete futures trading** with funded account management! TradingView webhook integration, Tradovate execution, and TopStep/Apex/TradeDay account risk management - all production-ready.
+
+> **🎉 STATUS**: TraderTerminal is **100% complete** with full production deployment! Frontend, backend, containerization, and now **institutional-grade futures trading** all implemented.
 
 ### 1. **Clone and Setup**
 ```bash
@@ -83,10 +92,12 @@ npm run dev
 - **Real-time Updates**: WebSocket streaming active
 
 ### 4. **Current Demo Mode**
-- **Mock Data**: Platform runs with realistic trading scenarios
+- **Mock Data**: Platform runs with realistic trading scenarios including funded accounts
 - **Real-time Updates**: Account P&L, positions, and quotes update every 5 seconds
-- **All Features Working**: Order entry, portfolio tracking, backtesting all functional
-- **Broker Integration**: Ready for Tradier API (add credentials to enable live data)
+- **Futures Trading Ready**: Complete TradingView webhook → Tradovate execution pipeline
+- **Funded Account Simulation**: TopStep/Apex evaluation accounts with live rule enforcement
+- **All Features Working**: Order entry, portfolio tracking, backtesting, risk management all functional
+- **Broker Integration**: Ready for Tradovate (futures) and Tradier (stocks) APIs
 
 ### 5. **Start Trading**
 - **Watch Markets**: Add symbols to your watchlist

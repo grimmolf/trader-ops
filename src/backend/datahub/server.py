@@ -35,6 +35,7 @@ from ..feeds.tradier import TradierConnector
 from ..services.backtest_service import (
     BacktestService, BacktestRequest, BacktestJob, BacktestStatus, get_backtest_service
 )
+from ..webhooks import tradingview_router
 
 
 # Configuration
@@ -273,6 +274,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Include webhook router
+app.include_router(tradingview_router)
+
 
 # Health check
 @app.get("/health")
@@ -480,103 +484,10 @@ async def websocket_endpoint(websocket: WebSocket):
 
 
 # ============================================================================
-# TradingView Webhook Endpoints
+# TradingView Webhook Endpoints - Now handled by enhanced webhook module
 # ============================================================================
-
-class TradingViewWebhook(BaseModel):
-    """TradingView webhook payload model"""
-    strategy: Optional[Dict[str, Any]] = None
-    action: Optional[str] = None  # "buy", "sell", "exit"
-    contracts: Optional[float] = None
-    ticker: Optional[str] = None
-    position_size: Optional[float] = None
-    price: Optional[float] = None
-    timestamp: Optional[str] = None
-    exchange: Optional[str] = None
-    # Custom alert fields
-    alert_name: Optional[str] = None
-    message: Optional[str] = None
-
-
-@app.post("/webhook/tradingview")
-async def tradingview_webhook(
-    request: Request,
-    background_tasks: BackgroundTasks,
-    webhook_data: TradingViewWebhook
-):
-    """
-    TradingView webhook endpoint for receiving alerts.
-    
-    This endpoint receives webhooks from TradingView alerts and can:
-    1. Log the alert for analysis
-    2. Forward to Chronos for execution
-    3. Trigger portfolio rebalancing
-    4. Send notifications
-    """
-    try:
-        # Verify webhook if secret is configured
-        if settings.tradingview_webhook_secret:
-            # TODO: Implement webhook signature verification
-            pass
-        
-        # Log webhook received
-        logger.info(f"TradingView webhook received: {webhook_data.dict()}")
-        
-        # Convert to AlertEvent for processing
-        alert_event = AlertEvent(
-            alert_id=f"tv_{webhook_data.alert_name or 'unknown'}_{int(time.time())}",
-            symbol=webhook_data.ticker or "UNKNOWN",
-            trigger_price=webhook_data.price or 0,
-            condition="custom",  # TradingView alerts are custom conditions
-            condition_value=webhook_data.price or 0,
-            message=webhook_data.message or f"TradingView alert: {webhook_data.action}",
-            auto_execute=webhook_data.action in ["buy", "sell"],
-            order_side=webhook_data.action,
-            order_quantity=webhook_data.contracts or webhook_data.position_size,
-            order_type="market"  # Default to market orders
-        )
-        
-        # Process in background
-        background_tasks.add_task(process_tradingview_alert, alert_event, webhook_data)
-        
-        return {"status": "received", "alert_id": alert_event.alert_id}
-        
-    except Exception as e:
-        logger.error(f"Error processing TradingView webhook: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
-
-
-async def process_tradingview_alert(alert_event: AlertEvent, webhook_data: TradingViewWebhook):
-    """Process TradingView alert in background"""
-    try:
-        # Forward to Chronos for execution if auto-execute
-        if alert_event.auto_execute and settings.chronos_webhook_url:
-            import httpx
-            async with httpx.AsyncClient() as client:
-                chronos_payload = alert_event.to_chronos_payload()
-                response = await client.post(
-                    settings.chronos_webhook_url,
-                    json=chronos_payload,
-                    timeout=10
-                )
-                logger.info(f"Forwarded to Chronos: {response.status_code}")
-        
-        # Broadcast to WebSocket subscribers
-        if webhook_data.ticker:
-            quote = Quote(
-                symbol=webhook_data.ticker,
-                timestamp=int(time.time()),
-                last=webhook_data.price,
-                volume=0,
-                change=0,
-                change_percent=0
-            )
-            await connection_manager.broadcast_quote(quote)
-        
-        logger.info(f"Processed TradingView alert: {alert_event.alert_id}")
-        
-    except Exception as e:
-        logger.error(f"Error processing TradingView alert: {e}")
+# Webhook endpoints moved to ../webhooks/tradingview_receiver.py for improved
+# security, validation, and processing capabilities.
 
 
 # ============================================================================
