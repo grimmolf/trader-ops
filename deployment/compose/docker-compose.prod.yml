@@ -1,0 +1,168 @@
+# TraderTerminal Production Compose Configuration
+# Optimized for production deployment with security and performance settings
+version: '3.8'
+
+services:
+  # Redis cache service
+  redis:
+    image: ghcr.io/grimmolf/traderterminal-redis:latest
+    container_name: traderterminal-redis
+    ports:
+      - "127.0.0.1:6379:6379"  # Bind to localhost only
+    volumes:
+      - redis_data:/data
+    user: "1001:1001"
+    read_only: true
+    tmpfs:
+      - /tmp
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+    networks:
+      - traderterminal
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '0.5'
+        reservations:
+          memory: 128M
+          cpus: '0.1'
+
+  # DataHub backend service
+  datahub:
+    image: ghcr.io/grimmolf/traderterminal-datahub:latest
+    container_name: traderterminal-datahub
+    ports:
+      - "8080:8080"
+    volumes:
+      - /etc/traderterminal:/etc/traderterminal:ro
+      - datahub_data:/app/data
+    environment:
+      - REDIS_URL=redis://redis:6379
+      - KAIROS_URL=http://kairos:8081
+      - LOG_LEVEL=INFO
+      - PYTHONPATH=/app
+    user: "1001:1001"
+    read_only: true
+    tmpfs:
+      - /tmp
+      - /app/logs
+    depends_on:
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    restart: unless-stopped
+    networks:
+      - traderterminal
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+          cpus: '2'
+        reservations:
+          memory: 512M
+          cpus: '0.5'
+
+  # Kairos automation service
+  kairos:
+    image: ghcr.io/grimmolf/traderterminal-kairos:latest
+    container_name: traderterminal-kairos
+    ports:
+      - "127.0.0.1:8081:8081"  # Bind to localhost only
+    volumes:
+      - /etc/traderterminal:/etc/traderterminal:ro
+      - kairos_data:/app/data
+    environment:
+      - DATAHUB_URL=http://datahub:8080
+      - REDIS_URL=redis://redis:6379
+      - HEADLESS_MODE=true
+      - LOG_LEVEL=INFO
+      - PYTHONPATH=/app
+    user: "1001:1001"
+    read_only: true
+    tmpfs:
+      - /tmp
+      - /app/logs
+    depends_on:
+      datahub:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8081/health"]
+      interval: 60s
+      timeout: 15s
+      retries: 3
+      start_period: 60s
+    restart: unless-stopped
+    networks:
+      - traderterminal
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: '1'
+        reservations:
+          memory: 256M
+          cpus: '0.2'
+
+  # Prometheus monitoring (optional)
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: traderterminal-prometheus
+    ports:
+      - "127.0.0.1:9090:9090"
+    volumes:
+      - prometheus_config:/etc/prometheus:ro
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--storage.tsdb.retention.time=200h'
+      - '--web.enable-lifecycle'
+    user: "1001:1001"
+    restart: unless-stopped
+    networks:
+      - traderterminal
+    profiles:
+      - monitoring
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '0.5'
+
+# Named volumes for persistent data
+volumes:
+  redis_data:
+    driver: local
+  datahub_data:
+    driver: local
+  kairos_data:
+    driver: local
+  prometheus_config:
+    driver: local
+  prometheus_data:
+    driver: local
+
+# Secure network configuration
+networks:
+  traderterminal:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.21.0.0/16
+    driver_opts:
+      com.docker.network.bridge.enable_icc: "true"
+      com.docker.network.bridge.enable_ip_masquerade: "true"

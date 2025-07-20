@@ -1,0 +1,31 @@
+# TraderTerminal Redis Cache Service Container
+# Provides state management and caching for real-time trading data
+FROM docker.io/redis:7-alpine
+
+# Create non-root user for security
+RUN addgroup -g 1001 trader && \
+    adduser -D -u 1001 -G trader trader
+
+# Create data directory with proper permissions
+RUN mkdir -p /data && \
+    chown -R trader:trader /data
+
+# Switch to non-root user
+USER trader
+
+# Expose Redis port
+EXPOSE 6379
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD redis-cli ping | grep PONG || exit 1
+
+# Configure Redis for trading workloads
+CMD ["redis-server", \
+     "--appendonly", "yes", \
+     "--appendfsync", "everysec", \
+     "--maxmemory", "256mb", \
+     "--maxmemory-policy", "allkeys-lru", \
+     "--save", "900", "1", \
+     "--save", "300", "10", \
+     "--save", "60", "10000"]

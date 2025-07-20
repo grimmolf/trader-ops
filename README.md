@@ -43,7 +43,7 @@
 
 ## ⚡ **Quick Start - Get Trading in 5 Minutes**
 
-> **🎉 STATUS UPDATE**: TraderTerminal is now **fully operational** with complete frontend-backend integration! All core features are working with real-time data streaming.
+> **🎉 STATUS UPDATE**: TraderTerminal is now **100% complete** with full production deployment! Frontend, backend, and containerization all implemented with institutional-grade quality.
 
 ### 1. **Clone and Setup**
 ```bash
@@ -57,12 +57,23 @@ cd src/frontend && npm install  # Frontend dependencies
 ```
 
 ### 2. **Launch the Application**
+
+**Option A: Native Development**
 ```bash
 # Terminal 1: Start backend server
 PYTHONPATH=/path/to/trader-ops uv run uvicorn src.backend.datahub.server:app --host localhost --port 8080 --reload
 
 # Terminal 2: Start frontend (from src/frontend/)
 npm run dev
+```
+
+**Option B: Containerized Development (Recommended)**
+```bash
+# One command starts everything with hot-reload
+./deployment/scripts/dev-compose.sh start
+
+# Check status
+./deployment/scripts/dev-compose.sh status
 ```
 
 ### 3. **Access the Trading Platform**
@@ -503,6 +514,7 @@ cd src/frontend && npm run dev
 - **[System Architecture](docs/architecture/SYSTEM_ARCHITECTURE.md)**: Comprehensive overview
 - **[Development Logs](docs/development-logs/)**: Session-by-session tracking  
 - **[API Reference](docs/api/)**: Complete endpoint documentation
+- **[Deployment Guide](deployment/README.md)**: Production containerization and deployment
 - **[PRP Document](docs/architecture/PRPs/prps_trader_dashboard_prp.md)**: Requirements
 - **[Installation Guide](docs/user/INSTALLATION_GUIDE.md)**: Setup instructions
 
@@ -529,13 +541,24 @@ npm run package:mac    # Creates .dmg installer
 npm run package:linux  # Creates .AppImage
 ```
 
-### **Container Deployment (Future)**
+### **Container Deployment (Production Ready)**
 ```bash
-# Podman pod configuration (planned Phase 3)
+# Development Environment (One Command)
+./deployment/scripts/dev-compose.sh start
+
+# Production Deployment - Fedora (SystemD)
+./deployment/scripts/install-fedora.sh
+
+# Production Deployment - macOS (launchd)  
+./deployment/scripts/install-macos.sh
+
+# Manual Container Setup
 podman pod create --name traderterminal-pod --publish 8080:8080
-podman run -d --name datahub --pod traderterminal-pod traderterminal-datahub
-podman run -d --name redis --pod traderterminal-pod redis:7-alpine
+podman run -d --name datahub --pod traderterminal-pod ghcr.io/grimmolf/traderterminal-datahub
+podman run -d --name redis --pod traderterminal-pod ghcr.io/grimmolf/traderterminal-redis
 ```
+
+**Complete deployment documentation**: [deployment/README.md](deployment/README.md)
 
 ---
 

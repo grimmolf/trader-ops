@@ -1,0 +1,146 @@
+# TraderTerminal Podman Pod Configuration
+# Creates a unified pod for all trading platform services with shared networking
+apiVersion: v1
+kind: Pod
+metadata:
+  name: traderterminal-pod
+  namespace: trading
+  labels:
+    app: traderterminal
+    version: "1.0.0"
+    environment: production
+spec:
+  restartPolicy: Always
+  containers:
+  
+  # DataHub Service - Main API and UDF provider
+  - name: datahub
+    image: ghcr.io/grimmolf/traderterminal-datahub:latest
+    ports:
+    - containerPort: 8080
+      protocol: TCP
+    resources:
+      limits:
+        memory: "2Gi"
+        cpu: "2"
+      requests:
+        memory: "512Mi"
+        cpu: "0.5"
+    env:
+    - name: REDIS_URL
+      value: "redis://localhost:6379"
+    - name: KAIROS_URL
+      value: "http://localhost:8081"
+    - name: LOG_LEVEL
+      value: "INFO"
+    volumeMounts:
+    - name: config
+      mountPath: /etc/traderterminal
+      readOnly: true
+    - name: data
+      mountPath: /app/data
+    livenessProbe:
+      httpGet:
+        path: /health
+        port: 8080
+      initialDelaySeconds: 30
+      periodSeconds: 10
+    readinessProbe:
+      httpGet:
+        path: /health
+        port: 8080
+      initialDelaySeconds: 5
+      periodSeconds: 5
+
+  # Redis Cache Service
+  - name: redis
+    image: ghcr.io/grimmolf/traderterminal-redis:latest
+    ports:
+    - containerPort: 6379
+      protocol: TCP
+    resources:
+      limits:
+        memory: "512Mi"
+        cpu: "0.5"
+      requests:
+        memory: "128Mi"
+        cpu: "0.1"
+    volumeMounts:
+    - name: redis-data
+      mountPath: /data
+    livenessProbe:
+      tcpSocket:
+        port: 6379
+      initialDelaySeconds: 30
+      periodSeconds: 10
+    readinessProbe:
+      tcpSocket:
+        port: 6379
+      initialDelaySeconds: 5
+      periodSeconds: 5
+
+  # Kairos Automation Service
+  - name: kairos
+    image: ghcr.io/grimmolf/traderterminal-kairos:latest
+    ports:
+    - containerPort: 8081
+      protocol: TCP
+    resources:
+      limits:
+        memory: "1Gi"
+        cpu: "1"
+      requests:
+        memory: "256Mi"
+        cpu: "0.2"
+    env:
+    - name: DATAHUB_URL
+      value: "http://localhost:8080"
+    - name: REDIS_URL
+      value: "redis://localhost:6379"
+    - name: HEADLESS_MODE
+      value: "true"
+    volumeMounts:
+    - name: config
+      mountPath: /etc/traderterminal
+      readOnly: true
+    - name: kairos-data
+      mountPath: /app/data
+    livenessProbe:
+      httpGet:
+        path: /health
+        port: 8081
+      initialDelaySeconds: 60
+      periodSeconds: 30
+    readinessProbe:
+      httpGet:
+        path: /health
+        port: 8081
+      initialDelaySeconds: 30
+      periodSeconds: 10
+
+  # Volumes for persistent data and configuration
+  volumes:
+  - name: config
+    configMap:
+      name: traderterminal-config
+      defaultMode: 0644
+  - name: data
+    persistentVolumeClaim:
+      claimName: traderterminal-data
+  - name: redis-data
+    persistentVolumeClaim:
+      claimName: traderterminal-redis
+  - name: kairos-data
+    persistentVolumeClaim:
+      claimName: traderterminal-kairos
+
+  # Network configuration for pod
+  hostNetwork: false
+  dnsPolicy: ClusterFirst
+  
+  # Security context
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 1001
+    runAsGroup: 1001
+    fsGroup: 1001

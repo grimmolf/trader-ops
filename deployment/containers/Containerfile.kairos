@@ -1,0 +1,44 @@
+# TraderTerminal Kairos Automation Service Container
+# Provides headless TradingView strategy automation and backtesting
+FROM registry.fedoraproject.org/fedora-minimal:40
+
+# Install system dependencies including Chrome for headless automation
+RUN microdnf install -y python3 python3-pip chromium-headless curl && \
+    microdnf clean all
+
+# Install uv for dependency management
+RUN pip3 install uv
+
+# Set working directory
+WORKDIR /app
+
+# Copy dependency files
+COPY pyproject.toml uv.lock ./
+
+# Install Python dependencies
+RUN uv sync --frozen
+
+# Copy Kairos automation source
+COPY src/automation/ ./src/automation/
+COPY src/__init__.py ./src/
+
+# Create non-root user
+RUN useradd -m -u 1001 trader && \
+    chown -R trader:trader /app
+USER trader
+
+# Set Chrome environment variables for headless operation
+ENV CHROME_BIN=/usr/bin/chromium-browser
+ENV CHROME_PATH=/usr/bin/chromium-browser
+ENV DISPLAY=:99
+
+# Expose Kairos service port
+EXPOSE 8081
+
+# Health check
+HEALTHCHECK --interval=60s --timeout=15s --start-period=30s --retries=3 \
+    CMD curl -f http://localhost:8081/health || exit 1
+
+# Start Kairos automation service
+CMD ["uv", "run", "python", "-m", "src.automation.kairos_jobs.service", \
+     "--host", "0.0.0.0", "--port", "8081"]

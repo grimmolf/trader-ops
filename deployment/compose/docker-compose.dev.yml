@@ -1,0 +1,116 @@
+# TraderTerminal Development Compose Configuration
+# Simplified setup for development with hot reload and debugging capabilities
+version: '3.8'
+
+services:
+  # Redis cache service
+  redis:
+    image: redis:7-alpine
+    container_name: traderterminal-redis-dev
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    networks:
+      - traderterminal
+
+  # DataHub backend service
+  datahub:
+    build:
+      context: ../..
+      dockerfile: deployment/containers/Containerfile.datahub
+    container_name: traderterminal-datahub-dev
+    ports:
+      - "8080:8080"
+    volumes:
+      - ../../src/backend:/app/src/backend:ro
+      - ../../config:/etc/traderterminal:ro
+      - datahub_data:/app/data
+    environment:
+      - REDIS_URL=redis://redis:6379
+      - KAIROS_URL=http://kairos:8081
+      - LOG_LEVEL=DEBUG
+      - DEVELOPMENT_MODE=true
+      - PYTHONPATH=/app
+    depends_on:
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    restart: unless-stopped
+    networks:
+      - traderterminal
+
+  # Kairos automation service
+  kairos:
+    build:
+      context: ../..
+      dockerfile: deployment/containers/Containerfile.kairos
+    container_name: traderterminal-kairos-dev
+    ports:
+      - "8081:8081"
+    volumes:
+      - ../../src/automation:/app/src/automation:ro
+      - ../../config:/etc/traderterminal:ro
+      - kairos_data:/app/data
+    environment:
+      - DATAHUB_URL=http://datahub:8080
+      - REDIS_URL=redis://redis:6379
+      - HEADLESS_MODE=true
+      - LOG_LEVEL=DEBUG
+      - DEVELOPMENT_MODE=true
+      - PYTHONPATH=/app
+    depends_on:
+      datahub:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8081/health"]
+      interval: 60s
+      timeout: 15s
+      retries: 3
+      start_period: 60s
+    restart: unless-stopped
+    networks:
+      - traderterminal
+
+  # Development utilities container
+  dev-utils:
+    image: alpine/curl:latest
+    container_name: traderterminal-dev-utils
+    command: tail -f /dev/null
+    volumes:
+      - ../../:/workspace:ro
+    networks:
+      - traderterminal
+    profiles:
+      - utils
+
+# Named volumes for persistent data
+volumes:
+  redis_data:
+    driver: local
+  datahub_data:
+    driver: local
+  kairos_data:
+    driver: local
+
+# Custom network for service communication
+networks:
+  traderterminal:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
