@@ -32,10 +32,13 @@ from ..models.market_data import (
 from ..models.alerts import Alert, AlertEvent, AlertStatus
 from ..models.execution import Order, Execution, Position, Account
 from ..feeds.tradier import TradierConnector
+from ..feeds.tradovate.manager import TradovateManager
+from ..feeds.tradovate.auth import TradovateCredentials
 from ..services.backtest_service import (
     BacktestService, BacktestRequest, BacktestJob, BacktestStatus, get_backtest_service
 )
 from ..webhooks import tradingview_router
+from ..webhooks.tradingview_receiver import set_global_instances
 
 
 # Configuration
@@ -55,6 +58,12 @@ class Settings(BaseSettings):
     
     # TradingView configuration
     tradingview_webhook_secret: Optional[str] = None
+    
+    # Tradovate configuration
+    tradovate_username: Optional[str] = None
+    tradovate_password: Optional[str] = None
+    tradovate_app_id: Optional[str] = None
+    tradovate_demo: bool = True
     
     # CORS settings
     cors_origins: List[str] = ["http://localhost:5173", "http://localhost:3000"]
@@ -169,6 +178,7 @@ class ConnectionManager:
 # Global instances
 connection_manager = ConnectionManager()
 tradier_connector: Optional[TradierConnector] = None
+tradovate_manager: Optional[TradovateManager] = None
 active_alerts: Dict[str, Alert] = {}
 
 
@@ -228,11 +238,12 @@ async def broadcast_mock_data():
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Application startup and shutdown"""
-    global tradier_connector
+    global tradier_connector, tradovate_manager
     
     # Startup
     logger.info("Starting DataHub server...")
     
+    # Initialize Tradier connector
     if settings.tradier_api_key:
         tradier_connector = TradierConnector(
             api_key=settings.tradier_api_key,
@@ -243,6 +254,28 @@ async def lifespan(app: FastAPI):
         logger.info("Tradier connector initialized")
     else:
         logger.warning("Tradier API key not provided - using mock data")
+    
+    # Initialize Tradovate manager
+    if settings.tradovate_username and settings.tradovate_password and settings.tradovate_app_id:
+        try:
+            tradovate_credentials = TradovateCredentials(
+                username=settings.tradovate_username,
+                password=settings.tradovate_password,
+                app_id=settings.tradovate_app_id,
+                demo=settings.tradovate_demo
+            )
+            tradovate_manager = TradovateManager(tradovate_credentials)
+            await tradovate_manager.initialize()
+            logger.info(f"Tradovate manager initialized in {'demo' if settings.tradovate_demo else 'live'} mode")
+        except Exception as e:
+            logger.error(f"Failed to initialize Tradovate manager: {e}")
+            tradovate_manager = None
+    else:
+        logger.warning("Tradovate credentials not provided - futures trading unavailable")
+    
+    # Set global instances for webhook processor
+    set_global_instances(settings, tradovate_manager, connection_manager)
+    logger.info("Webhook processor configured with global instances")
     
     # Start mock data broadcasting task
     mock_data_task = asyncio.create_task(broadcast_mock_data())
@@ -255,6 +288,9 @@ async def lifespan(app: FastAPI):
     mock_data_task.cancel()
     if tradier_connector:
         await tradier_connector.close()
+    if tradovate_manager:
+        # TradovateManager doesn't have a close method, but auth tokens will expire
+        logger.info("Tradovate manager shutdown")
 
 
 # FastAPI app
@@ -287,6 +323,7 @@ async def health_check():
         "timestamp": int(time.time()),
         "version": "1.0.0",
         "tradier_connected": tradier_connector is not None,
+        "tradovate_connected": tradovate_manager is not None,
         "active_connections": len(connection_manager.active_connections)
     }
 

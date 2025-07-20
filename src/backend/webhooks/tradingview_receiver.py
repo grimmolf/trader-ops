@@ -23,6 +23,19 @@ from .security import (
 
 logger = logging.getLogger(__name__)
 
+# Global instances - will be set by server initialization
+_settings = None
+_tradovate_manager = None
+_connection_manager = None
+
+
+def set_global_instances(settings, tradovate_manager, connection_manager):
+    """Set global instances from server startup"""
+    global _settings, _tradovate_manager, _connection_manager
+    _settings = settings
+    _tradovate_manager = tradovate_manager
+    _connection_manager = connection_manager
+
 # Router for webhook endpoints
 router = APIRouter(prefix="/webhook", tags=["webhooks"])
 
@@ -227,16 +240,30 @@ async def process_tradingview_alert(
 
 def _get_webhook_secret() -> Optional[str]:
     """Get webhook secret from configuration"""
-    # This should be imported from settings
-    # For now, return None to allow unsigned webhooks in development
+    if _settings:
+        return _settings.tradingview_webhook_secret
     return None
 
 
 def _get_broker_connector(account_group: str):
     """Get appropriate broker connector for account group"""
-    # TODO: Implement broker connector routing
-    # This will be implemented when Tradovate and TopstepX connectors are ready
     logger.info(f"Broker connector lookup for account group: {account_group}")
+    
+    # Normalize account group
+    group = account_group.lower() if account_group else "main"
+    
+    # Route to Tradovate for futures and funded accounts
+    futures_groups = ["main", "tradovate", "topstep", "apex", "tradeday", "fundedtrader"]
+    if group in futures_groups:
+        if _tradovate_manager:
+            logger.info(f"Routing {account_group} to Tradovate manager")
+            return _tradovate_manager
+        else:
+            logger.warning(f"Tradovate manager not available for {account_group}")
+            return None
+    
+    # TODO: Add routing for other brokers (Schwab for stocks/options)
+    logger.warning(f"No broker connector configured for account group: {account_group}")
     return None
 
 
@@ -261,9 +288,31 @@ async def _check_funded_account_rules(alert: TradingViewAlert) -> tuple[bool, Op
 
 async def _broadcast_execution_update(alert: TradingViewAlert, execution_result: dict):
     """Broadcast execution update to connected WebSocket clients"""
-    # TODO: Implement WebSocket broadcasting
-    # This will connect to the ConnectionManager when ready
-    logger.info(f"Broadcasting execution update for {alert.symbol}")
+    if not _connection_manager:
+        logger.warning("Connection manager not available for broadcasting")
+        return
+    
+    try:
+        # Create execution update message
+        update_message = {
+            "type": "execution",
+            "data": {
+                "symbol": alert.symbol,
+                "action": alert.action,
+                "quantity": alert.quantity,
+                "strategy": alert.strategy,
+                "account_group": alert.account_group,
+                "execution_result": execution_result,
+                "timestamp": time.time()
+            }
+        }
+        
+        # Broadcast to all connected clients
+        await _connection_manager.broadcast_to_all(update_message)
+        logger.info(f"Execution update broadcasted for {alert.symbol} {alert.action}")
+        
+    except Exception as e:
+        logger.error(f"Error broadcasting execution update: {e}")
 
 
 @router.get("/test")

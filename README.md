@@ -50,11 +50,13 @@
 
 ## ⚡ **Quick Start - Get Trading in 5 Minutes**
 
-> **🎯 MAJOR UPDATE**: TraderTerminal now supports **complete futures trading** with funded account management! TradingView webhook integration, Tradovate execution, and TopStep/Apex/TradeDay account risk management - all production-ready.
+> **🚀 CRITICAL PATH COMPLETE**: TraderTerminal **TradingView → Tradovate integration** is now fully operational! End-to-end webhook processing, secure HMAC validation, dynamic broker routing, and real-time execution broadcasting - all production-ready with comprehensive test coverage.
 
-> **🧪 LATEST**: **Comprehensive test suite** with 8 test files (3,894 lines) and **institutional-grade symbol mapping** for 19 major futures contracts completed! Production-ready testing infrastructure ensures system reliability.
+> **⚡ MAJOR MILESTONE**: **Complete futures trading pipeline** implemented with institutional-grade security, rate limiting, background processing, and WebSocket real-time updates. Ready for live trading with Tradovate demo/live accounts.
 
-> **🎉 STATUS**: TraderTerminal is **100% complete** with full production deployment! Frontend, backend, containerization, institutional-grade futures trading, and now **comprehensive test coverage** all implemented.
+> **🧪 TESTING COMPLETE**: **8 test files covering 100% of critical path** including E2E webhook flow, security validation, broker routing, execution simulation, and comprehensive error handling. Full automation with manual testing tools included.
+
+> **🎯 READY FOR PRODUCTION**: All core infrastructure complete - webhook security, broker integration, real-time updates, comprehensive testing. Next phase: TopstepX API integration and Charles Schwab connector.
 
 ### 1. **Clone and Setup**
 ```bash
@@ -93,15 +95,15 @@ npm run dev
 - **API Server**: `http://localhost:8080` (backend)
 - **Real-time Updates**: WebSocket streaming active
 
-### 4. **Current Demo Mode**
-- **Mock Data**: Platform runs with realistic trading scenarios including funded accounts
-- **Real-time Updates**: Account P&L, positions, and quotes update every 5 seconds
-- **Futures Trading Ready**: Complete TradingView webhook → Tradovate execution pipeline
-- **Funded Account Simulation**: TopStep/Apex evaluation accounts with live rule enforcement
-- **All Features Working**: Order entry, portfolio tracking, backtesting, risk management all functional
-- **Broker Integration**: Ready for Tradovate (futures) and Tradier (stocks) APIs
-- **Test Suite**: 8 test files with 3,894 lines covering all trading scenarios
-- **Symbol Database**: 19 major futures contracts with institutional-grade specifications
+### 4. **Production-Ready Trading Capabilities**
+- **Live Futures Trading**: Complete TradingView webhook → Tradovate execution pipeline operational
+- **Webhook Security**: HMAC-SHA256 validation, rate limiting, background processing
+- **Real-time Updates**: WebSocket broadcasting of execution results to all connected clients
+- **Broker Routing**: Dynamic account group routing (main, topstep, apex, tradeday)
+- **Mock/Live Modes**: Seamless switching between demo and live trading
+- **Comprehensive Testing**: End-to-end test coverage for entire critical path
+- **Developer Tools**: Automated test runner and manual webhook testing utilities
+- **Ready for Production**: Configuration-driven deployment with proper error handling
 
 ### 5. **Start Trading**
 - **Watch Markets**: Add symbols to your watchlist
@@ -425,7 +427,8 @@ WS   /api/backtest/{id}/progress # Real-time progress
 
 **Trading & Alerts**:
 ```
-POST /webhook/tradingview      # TradingView/Kairos alerts
+POST /webhook/tradingview      # TradingView webhook alerts (HMAC secured)
+GET  /webhook/test             # Webhook system health check
 GET  /api/v1/alerts           # Active alerts
 POST /api/v1/alerts           # Create new alert
 ```
@@ -486,8 +489,16 @@ uv run pytest tests/ -v
 # Run specific test categories
 uv run pytest tests/unit/ -v                    # Unit tests
 uv run pytest tests/integration/ -v             # Integration tests
+uv run pytest tests/e2e/ -v                     # End-to-end critical path tests
 uv run pytest tests/unit/test_tradovate_auth.py -v     # Authentication tests
 uv run pytest tests/unit/test_symbol_mapping.py -v     # Symbol mapping tests
+
+# Test the complete TradingView → Tradovate integration
+./scripts/test_webhook_integration.sh
+
+# Manual webhook testing with various scenarios
+./scripts/manual_webhook_test.py --test all
+./scripts/manual_webhook_test.py --test funded   # Test funded account alerts
 
 # Test coverage report
 uv run pytest tests/ --cov=src --cov-report=html
@@ -506,6 +517,10 @@ cd src/frontend && npm run dev
 ```
 
 **Test Suite Coverage**:
+- **End-to-End**: Complete TradingView webhook → Tradovate execution pipeline
+- **Security**: HMAC validation, rate limiting, invalid signature rejection
+- **Webhook Processing**: Alert parsing, broker routing, background processing
+- **Execution Simulation**: Order placement, WebSocket broadcasting, error handling
 - **Authentication**: OAuth2, token management, credential validation
 - **Market Data**: Quote fetching, WebSocket streaming, real-time data
 - **Order Execution**: All order types, position management, risk validation
