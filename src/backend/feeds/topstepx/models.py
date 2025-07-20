@@ -1,17 +1,357 @@
 """
-TopstepX models and data structures for funded account management.
+TopstepX Data Models and Business Logic
 
-Defines Pydantic models for managing funded trading accounts including
-rule enforcement, risk monitoring, and compliance tracking.
+Comprehensive Pydantic models for TopstepX API integration including:
+- API request/response models for REST and WebSocket
+- Business logic models for funded account management
+- Rule enforcement, risk monitoring, and compliance tracking
 """
 
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, date
 from enum import Enum
 from typing import Dict, List, Optional, Union
+from decimal import Decimal
 from pydantic import BaseModel, Field, validator
 
 logger = logging.getLogger(__name__)
+
+
+# =============================================================================
+# API-Specific Models (TopstepX REST API)
+# =============================================================================
+
+class ContractType(Enum):
+    """Contract types supported by TopstepX API"""
+    FUTURE = "FUTURE"
+    OPTION = "OPTION"
+    SPREAD = "SPREAD"
+    MICRO = "MICRO"
+
+
+class OrderType(Enum):
+    """Order types for futures trading"""
+    MARKET = "MARKET"
+    LIMIT = "LIMIT"
+    STOP = "STOP"
+    STOP_LIMIT = "STOP_LIMIT"
+    MIT = "MIT"  # Market If Touched
+    LIT = "LIT"  # Limit If Touched
+
+
+class OrderSide(Enum):
+    """Order side"""
+    BUY = "BUY"
+    SELL = "SELL"
+
+
+class OrderStatus(Enum):
+    """Order status types from TopstepX API"""
+    PENDING = "PENDING"
+    WORKING = "WORKING"
+    FILLED = "FILLED"
+    CANCELLED = "CANCELLED"
+    REJECTED = "REJECTED"
+    PARTIALLY_FILLED = "PARTIALLY_FILLED"
+    PENDING_CANCEL = "PENDING_CANCEL"
+
+
+class TimeInForce(Enum):
+    """Time in force types"""
+    DAY = "DAY"
+    GTC = "GTC"  # Good Till Cancelled
+    IOC = "IOC"  # Immediate Or Cancel
+    FOK = "FOK"  # Fill Or Kill
+
+
+class TopstepXContract(BaseModel):
+    """Futures contract information from TopstepX API"""
+    
+    contract_id: str
+    symbol: str
+    description: str
+    contract_type: ContractType
+    exchange: str
+    
+    # Contract specifications
+    tick_size: Decimal
+    tick_value: Decimal
+    point_value: Decimal
+    minimum_tick: Decimal
+    
+    # Trading hours
+    trading_hours: Optional[Dict[str, Any]] = None
+    
+    # Expiration for futures
+    expiration_date: Optional[datetime] = None
+    delivery_month: Optional[str] = None
+    
+    # Margin requirements
+    initial_margin: Optional[Decimal] = None
+    maintenance_margin: Optional[Decimal] = None
+    
+    @classmethod
+    def from_topstepx_data(cls, data: Dict[str, Any]) -> "TopstepXContract":
+        """Create contract from TopstepX API response"""
+        return cls(
+            contract_id=data.get("contractId", ""),
+            symbol=data.get("symbol", ""),
+            description=data.get("description", ""),
+            contract_type=ContractType(data.get("contractType", "FUTURE")),
+            exchange=data.get("exchange", ""),
+            tick_size=Decimal(str(data.get("tickSize", 0.25))),
+            tick_value=Decimal(str(data.get("tickValue", 12.50))),
+            point_value=Decimal(str(data.get("pointValue", 50))),
+            minimum_tick=Decimal(str(data.get("minimumTick", 0.25))),
+            trading_hours=data.get("tradingHours"),
+            expiration_date=datetime.fromisoformat(data["expirationDate"]) if data.get("expirationDate") else None,
+            delivery_month=data.get("deliveryMonth"),
+            initial_margin=Decimal(str(data["initialMargin"])) if data.get("initialMargin") else None,
+            maintenance_margin=Decimal(str(data["maintenanceMargin"])) if data.get("maintenanceMargin") else None
+        )
+
+
+class TopstepXQuote(BaseModel):
+    """Real-time market quote from TopstepX API"""
+    
+    contract_id: str
+    symbol: str
+    
+    # Price data
+    bid: Optional[Decimal] = None
+    ask: Optional[Decimal] = None
+    last: Optional[Decimal] = None
+    
+    # Size data
+    bid_size: Optional[int] = None
+    ask_size: Optional[int] = None
+    last_size: Optional[int] = None
+    
+    # Daily statistics
+    high: Optional[Decimal] = None
+    low: Optional[Decimal] = None
+    open_price: Optional[Decimal] = None
+    close_price: Optional[Decimal] = None
+    change: Optional[Decimal] = None
+    change_percent: Optional[Decimal] = None
+    
+    # Volume and open interest
+    volume: Optional[int] = None
+    open_interest: Optional[int] = None
+    
+    # Timestamps
+    timestamp: datetime = Field(default_factory=datetime.utcnow)
+    trade_time: Optional[datetime] = None
+    
+    @property
+    def mid_price(self) -> Optional[Decimal]:
+        """Calculate mid price from bid/ask"""
+        if self.bid and self.ask:
+            return (self.bid + self.ask) / Decimal("2")
+        return None
+    
+    @property
+    def spread(self) -> Optional[Decimal]:
+        """Calculate bid/ask spread"""
+        if self.bid and self.ask:
+            return self.ask - self.bid
+        return None
+    
+    @classmethod
+    def from_topstepx_data(cls, data: Dict[str, Any]) -> "TopstepXQuote":
+        """Create quote from TopstepX API response"""
+        return cls(
+            contract_id=data.get("contractId", ""),
+            symbol=data.get("symbol", ""),
+            bid=Decimal(str(data["bid"])) if data.get("bid") else None,
+            ask=Decimal(str(data["ask"])) if data.get("ask") else None,
+            last=Decimal(str(data["last"])) if data.get("last") else None,
+            bid_size=data.get("bidSize"),
+            ask_size=data.get("askSize"),
+            last_size=data.get("lastSize"),
+            high=Decimal(str(data["high"])) if data.get("high") else None,
+            low=Decimal(str(data["low"])) if data.get("low") else None,
+            open_price=Decimal(str(data["open"])) if data.get("open") else None,
+            close_price=Decimal(str(data["close"])) if data.get("close") else None,
+            change=Decimal(str(data["change"])) if data.get("change") else None,
+            change_percent=Decimal(str(data["changePercent"])) if data.get("changePercent") else None,
+            volume=data.get("volume"),
+            open_interest=data.get("openInterest"),
+            trade_time=datetime.fromisoformat(data["tradeTime"]) if data.get("tradeTime") else None
+        )
+
+
+class TopstepXOrder(BaseModel):
+    """Order information for TopstepX API"""
+    
+    # Order identifiers
+    order_id: Optional[str] = None
+    client_order_id: Optional[str] = None
+    account_id: str
+    
+    # Contract details
+    contract_id: str
+    symbol: str
+    
+    # Order specifications
+    side: OrderSide
+    order_type: OrderType
+    quantity: int
+    price: Optional[Decimal] = None
+    stop_price: Optional[Decimal] = None
+    time_in_force: TimeInForce = TimeInForce.DAY
+    
+    # Order status
+    status: Optional[OrderStatus] = None
+    filled_quantity: int = 0
+    remaining_quantity: Optional[int] = None
+    average_fill_price: Optional[Decimal] = None
+    
+    # Timestamps
+    created_at: Optional[datetime] = None
+    updated_at: Optional[datetime] = None
+    filled_at: Optional[datetime] = None
+    
+    # Additional metadata
+    text: Optional[str] = None  # Order description/notes
+    
+    @validator('quantity')
+    def quantity_must_be_positive(cls, v):
+        if v <= 0:
+            raise ValueError('Quantity must be positive')
+        return v
+    
+    @property
+    def is_filled(self) -> bool:
+        """Check if order is completely filled"""
+        return self.status == OrderStatus.FILLED
+    
+    @property
+    def is_working(self) -> bool:
+        """Check if order is active/working"""
+        return self.status in [OrderStatus.PENDING, OrderStatus.WORKING, OrderStatus.PARTIALLY_FILLED]
+    
+    @property
+    def is_buy(self) -> bool:
+        """Check if this is a buy order"""
+        return self.side == OrderSide.BUY
+    
+    @property
+    def is_sell(self) -> bool:
+        """Check if this is a sell order"""
+        return self.side == OrderSide.SELL
+    
+    def to_topstepx_format(self) -> Dict[str, Any]:
+        """Convert to TopstepX API format"""
+        order_data = {
+            "accountId": self.account_id,
+            "contractId": self.contract_id,
+            "side": self.side.value,
+            "orderType": self.order_type.value,
+            "quantity": self.quantity,
+            "timeInForce": self.time_in_force.value
+        }
+        
+        if self.price is not None:
+            order_data["price"] = float(self.price)
+        if self.stop_price is not None:
+            order_data["stopPrice"] = float(self.stop_price)
+        if self.client_order_id:
+            order_data["clientOrderId"] = self.client_order_id
+        if self.text:
+            order_data["text"] = self.text
+        
+        return order_data
+    
+    @classmethod
+    def from_topstepx_data(cls, data: Dict[str, Any]) -> "TopstepXOrder":
+        """Create order from TopstepX API response"""
+        return cls(
+            order_id=data.get("orderId"),
+            client_order_id=data.get("clientOrderId"),
+            account_id=data.get("accountId", ""),
+            contract_id=data.get("contractId", ""),
+            symbol=data.get("symbol", ""),
+            side=OrderSide(data.get("side", "BUY")),
+            order_type=OrderType(data.get("orderType", "MARKET")),
+            quantity=data.get("quantity", 0),
+            price=Decimal(str(data["price"])) if data.get("price") else None,
+            stop_price=Decimal(str(data["stopPrice"])) if data.get("stopPrice") else None,
+            time_in_force=TimeInForce(data.get("timeInForce", "DAY")),
+            status=OrderStatus(data["status"]) if data.get("status") else None,
+            filled_quantity=data.get("filledQuantity", 0),
+            remaining_quantity=data.get("remainingQuantity"),
+            average_fill_price=Decimal(str(data["averageFillPrice"])) if data.get("averageFillPrice") else None,
+            created_at=datetime.fromisoformat(data["createdAt"]) if data.get("createdAt") else None,
+            updated_at=datetime.fromisoformat(data["updatedAt"]) if data.get("updatedAt") else None,
+            filled_at=datetime.fromisoformat(data["filledAt"]) if data.get("filledAt") else None,
+            text=data.get("text")
+        )
+
+
+class TopstepXPosition(BaseModel):
+    """Position information from TopstepX API"""
+    
+    # Position identifiers
+    account_id: str
+    contract_id: str
+    symbol: str
+    
+    # Position details
+    quantity: int  # Positive for long, negative for short
+    average_price: Decimal
+    market_value: Optional[Decimal] = None
+    
+    # P&L calculations
+    unrealized_pnl: Optional[Decimal] = None
+    realized_pnl: Optional[Decimal] = None
+    day_pnl: Optional[Decimal] = None
+    
+    # Position metadata
+    opened_at: Optional[datetime] = None
+    updated_at: Optional[datetime] = None
+    
+    @property
+    def is_long(self) -> bool:
+        """Check if position is long"""
+        return self.quantity > 0
+    
+    @property
+    def is_short(self) -> bool:
+        """Check if position is short"""
+        return self.quantity < 0
+    
+    @property
+    def is_flat(self) -> bool:
+        """Check if position is flat"""
+        return self.quantity == 0
+    
+    @property
+    def absolute_quantity(self) -> int:
+        """Get absolute position size"""
+        return abs(self.quantity)
+    
+    @classmethod
+    def from_topstepx_data(cls, data: Dict[str, Any]) -> "TopstepXPosition":
+        """Create position from TopstepX API response"""
+        return cls(
+            account_id=data.get("accountId", ""),
+            contract_id=data.get("contractId", ""),
+            symbol=data.get("symbol", ""),
+            quantity=data.get("quantity", 0),
+            average_price=Decimal(str(data.get("averagePrice", 0))),
+            market_value=Decimal(str(data["marketValue"])) if data.get("marketValue") else None,
+            unrealized_pnl=Decimal(str(data["unrealizedPnl"])) if data.get("unrealizedPnl") else None,
+            realized_pnl=Decimal(str(data["realizedPnl"])) if data.get("realizedPnl") else None,
+            day_pnl=Decimal(str(data["dayPnl"])) if data.get("dayPnl") else None,
+            opened_at=datetime.fromisoformat(data["openedAt"]) if data.get("openedAt") else None,
+            updated_at=datetime.fromisoformat(data["updatedAt"]) if data.get("updatedAt") else None
+        )
+
+
+# =============================================================================
+# Business Logic Models (Funded Account Management)
+# =============================================================================
 
 
 class AccountStatus(Enum):

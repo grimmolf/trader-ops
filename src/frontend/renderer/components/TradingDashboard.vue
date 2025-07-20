@@ -14,6 +14,14 @@
           <div class="status-indicator"></div>
           <span>{{ tradingStore.isMarketOpen ? 'Market Open' : 'Market Closed' }}</span>
         </div>
+        
+        <!-- Connection Status Indicators -->
+        <div class="connection-indicators">
+          <div class="feed-status" :class="{ 'connected': connectionState.tradovate }" title="Tradovate">TV</div>
+          <div class="feed-status" :class="{ 'connected': connectionState.schwab }" title="Charles Schwab">CS</div>
+          <div class="feed-status" :class="{ 'connected': connectionState.tastytrade }" title="Tastytrade">TT</div>
+          <div class="feed-status" :class="{ 'connected': connectionState.topstepx }" title="TopstepX">TS</div>
+        </div>
       </div>
       
       <div class="header-right">
@@ -59,7 +67,9 @@
           
           <OrderHistory 
             v-if="activeLeftTab === 'orders'"
-            :orders="tradingStore.orders"
+            :orders="allOrders.orders"
+            :working-orders="allOrders.workingOrders"
+            :filled-orders="allOrders.filledOrders"
           />
         </div>
         
@@ -120,12 +130,14 @@
         <div class="panel-content">
           <Positions 
             v-if="activeRightTab === 'positions'"
-            :positions="tradingStore.openPositions" 
+            :positions="allPositions.positions" 
+            :total-market-value="allPositions.totalMarketValue"
+            :total-unrealized-pnl="allPositions.totalUnrealizedPnL"
           />
           
           <AlertPanel 
             v-if="activeRightTab === 'alerts'"
-            :alerts="activeAlerts" 
+            :alerts="fundedAccountsData.riskAlerts" 
           />
           
           <BacktestPanel 
@@ -143,9 +155,9 @@
     </div>
     
     <!-- Connection Status -->
-    <div class="connection-status" :class="{ 'connected': appStore.isConnected }">
+    <div class="connection-status" :class="{ 'connected': realTimeData.isConnected }">
       <div class="status-dot"></div>
-      <span>{{ appStore.isConnected ? 'Connected' : 'Disconnected' }}</span>
+      <span>{{ realTimeData.isConnected ? 'Connected' : 'Disconnected' }}</span>
     </div>
   </div>
 </template>
@@ -154,7 +166,8 @@
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useTradingStore } from '../src/stores/trading'
 import { useAppStore } from '../src/stores/app'
-import { useWebSocket } from '../composables/useWebSocket'
+import { useRealTimeData, usePositions, useFundedAccounts, useOrders } from '../src/composables/useRealTimeData'
+import { api, connectionState } from '../src/services/api'
 
 // Import components (these will be created next)
 import SymbolSearch from './SymbolSearch.vue'
@@ -172,8 +185,11 @@ import NewsFeed from './NewsFeed.vue'
 const tradingStore = useTradingStore()
 const appStore = useAppStore()
 
-// WebSocket connection
-const { isConnected } = useWebSocket('ws://localhost:8080/stream')
+// Real-time data
+const realTimeData = useRealTimeData()
+const allPositions = usePositions()
+const fundedAccountsData = useFundedAccounts()
+const allOrders = useOrders()
 
 // Panel state
 const activeLeftTab = ref('watchlist')
@@ -258,8 +274,25 @@ function onSymbolRemoved(symbol: string) {
 
 async function onOrderSubmitted(orderData: any) {
   try {
-    await tradingStore.submitOrder(orderData)
-    console.log('Order submitted successfully')
+    const response = await api.placeOrder({
+      symbol: orderData.symbol,
+      side: orderData.side,
+      quantity: orderData.quantity,
+      orderType: orderData.orderType,
+      price: orderData.price,
+      stopPrice: orderData.stopPrice,
+      timeInForce: orderData.timeInForce || 'day',
+      accountNumber: orderData.accountNumber,
+      feed: orderData.feed
+    })
+    
+    if (response.success) {
+      console.log('Order submitted successfully:', response.data)
+      // Order will appear in real-time orders via WebSocket
+    } else {
+      console.error('Failed to submit order:', response.error)
+      // Show error notification
+    }
   } catch (error) {
     console.error('Failed to submit order:', error)
     // Show error notification
@@ -293,7 +326,15 @@ async function closeWindow() {
 // Lifecycle
 onMounted(async () => {
   try {
+    // Initialize real-time data connection
+    await realTimeData.initialize()
+    
+    // Load initial trading store data
     await tradingStore.loadInitialData()
+    
+    // Check connection status
+    await api.checkConnectionStatus()
+    
     console.log('Trading dashboard initialized')
   } catch (error) {
     console.error('Failed to initialize trading dashboard:', error)
@@ -304,6 +345,9 @@ onUnmounted(() => {
   if (isResizing) {
     stopResize()
   }
+  
+  // Cleanup real-time data connections
+  realTimeData.cleanup()
 })
 </script>
 
@@ -372,6 +416,31 @@ onUnmounted(() => {
 
 .market-status.open .status-indicator {
   background: var(--accent-green);
+}
+
+.connection-indicators {
+  display: flex;
+  gap: 4px;
+}
+
+.feed-status {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 18px;
+  border-radius: 3px;
+  background: var(--bg-tertiary);
+  color: var(--text-secondary);
+  font-size: 10px;
+  font-weight: 500;
+  border: 1px solid var(--border-primary);
+}
+
+.feed-status.connected {
+  background: var(--accent-green);
+  color: white;
+  border-color: var(--accent-green);
 }
 
 .window-controls {

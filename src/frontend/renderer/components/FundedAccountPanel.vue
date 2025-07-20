@@ -382,29 +382,40 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, onMounted, onUnmounted } from 'vue'
-import { useFundedAccountsStore } from '@/stores/fundedAccounts'
+import { computed, ref, onMounted, onUnmounted, watch } from 'vue'
+import { useFundedAccounts, usePositions } from '../src/composables/useRealTimeData'
+import { api } from '../src/services/api'
 import AccountSelector from './AccountSelector.vue'
 import RiskMeter from './RiskMeter.vue'
 
-const store = useFundedAccountsStore()
+// Real-time data
+const fundedAccountsData = useFundedAccounts()
+const allPositions = usePositions()
 
 // Local state
 const showViolationsModal = ref(false)
 const showDetailsModal = ref(false)
 const refreshing = ref(false)
 const flattening = ref(false)
+const selectedAccountId = ref<string | null>(null)
 
-// Store state
-const { 
-  accounts, 
-  activeAccount, 
-  loading, 
-  totalAccountValue, 
-  totalDailyPnL,
-  activeViolations,
-  realtimeEnabled
-} = store
+// Computed properties from real-time data
+const accounts = computed(() => fundedAccountsData.fundedAccounts.value)
+const activeAccount = computed(() => {
+  if (!selectedAccountId.value) return null
+  return accounts.value.find(acc => acc.accountNumber === selectedAccountId.value) || null
+})
+const loading = computed(() => !fundedAccountsData.hasAccounts.value && !fundedAccountsData.isConnected.value)
+const activeViolations = computed(() => fundedAccountsData.riskAlerts.value)
+const realtimeEnabled = computed(() => fundedAccountsData.isConnected.value)
+
+const totalAccountValue = computed(() => {
+  return accounts.value.reduce((total, account) => total + (account.balance || 0), 0)
+})
+
+const totalDailyPnL = computed(() => {
+  return accounts.value.reduce((total, account) => total + (account.dailyLoss || 0), 0)
+})
 
 // Computed properties
 const profitProgress = computed(() => {
@@ -507,6 +518,7 @@ function formatDate(timestamp: string): string {
 
 // Event handlers
 function onAccountChanged(accountId: string) {
+  selectedAccountId.value = accountId
   console.log('Account changed to:', accountId)
 }
 
@@ -519,22 +531,35 @@ async function refreshActiveAccount() {
   
   refreshing.value = true
   try {
-    await store.updateMetrics(activeAccount.value.id)
+    const response = await api.getFundedAccount(
+      activeAccount.value.accountNumber, 
+      activeAccount.value.provider
+    )
+    if (response.success) {
+      console.log('Account refreshed:', response.data)
+    }
+  } catch (error) {
+    console.error('Failed to refresh account:', error)
   } finally {
     refreshing.value = false
   }
 }
 
 async function refreshAllAccounts() {
-  await store.fetchAccounts()
+  try {
+    const response = await api.getFundedAccounts()
+    if (response.success) {
+      console.log('All accounts refreshed')
+    }
+  } catch (error) {
+    console.error('Failed to refresh accounts:', error)
+  }
 }
 
 function toggleRealtime() {
-  if (realtimeEnabled.value) {
-    store.stopRealtimeUpdates()
-  } else {
-    store.startRealtimeUpdates()
-  }
+  // Real-time updates are handled by the composable
+  // This could trigger a manual refresh instead
+  refreshAllAccounts()
 }
 
 async function confirmEmergencyFlatten() {
@@ -551,21 +576,62 @@ async function confirmEmergencyFlatten() {
   
   flattening.value = true
   try {
-    await store.flattenPositions(activeAccount.value.id)
+    // Get positions for this account
+    const accountPositions = allPositions.positions.value.filter(
+      pos => pos.accountNumber === activeAccount.value?.accountNumber
+    )
+    
+    // Close each position
+    for (const position of accountPositions) {
+      if (position.quantity !== 0) {
+        const side = position.quantity > 0 ? 'sell' : 'buy'
+        const quantity = Math.abs(position.quantity)
+        
+        await api.placeOrder({
+          symbol: position.symbol,
+          side,
+          quantity,
+          orderType: 'market',
+          accountNumber: position.accountNumber,
+          feed: position.feed,
+          timeInForce: 'ioc'
+        })
+      }
+    }
+    
+    console.log('Emergency flatten completed')
+  } catch (error) {
+    console.error('Emergency flatten failed:', error)
   } finally {
     flattening.value = false
   }
 }
 
+async function fetchAccounts() {
+  try {
+    await refreshAllAccounts()
+  } catch (error) {
+    console.error('Failed to fetch accounts:', error)
+  }
+}
+
 // Lifecycle
 onMounted(async () => {
-  await store.fetchAccounts()
-  store.startRealtimeUpdates()
+  // Initialize funded accounts data
+  await refreshAllAccounts()
+  
+  // Select first account if available
+  if (accounts.value.length > 0 && !selectedAccountId.value) {
+    selectedAccountId.value = accounts.value[0].accountNumber
+  }
 })
 
-onUnmounted(() => {
-  store.stopRealtimeUpdates()
-})
+// Watch for accounts changes and auto-select first if none selected
+watch(accounts, (newAccounts) => {
+  if (newAccounts.length > 0 && !selectedAccountId.value) {
+    selectedAccountId.value = newAccounts[0].accountNumber
+  }
+}, { immediate: true })
 </script>
 
 <style scoped>

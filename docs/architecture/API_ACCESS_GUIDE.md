@@ -20,6 +20,7 @@ This guide provides comprehensive instructions for obtaining all necessary API k
 |---------|------|--------------|---------|--------|
 | **Tradier Pro** | Equities/Options | $10/month | Real-time US stocks & options | ⬜ Need |
 | **Tradovate CME Bundle** | Futures | $12/month | CME futures Level I data | ✅ Have |
+| **Tastytrade** | Futures/Options | $0 | Multi-asset execution platform | ✅ API Ready |
 | **TheNewsAPI Basic** | News | $19/month | Real-time financial news | ⬜ Need |
 | **TradingView Premium** | Charting | Paid | Advanced charts & webhooks | ✅ Have |
 | **Charles Schwab** | Broker | $0* | Stocks/options execution | ✅ Have |
@@ -37,6 +38,7 @@ This guide provides comprehensive instructions for obtaining all necessary API k
 ### Already Have:
 - ✅ **TradingView Premium** - Ready for webhook automation
 - ✅ **Tradovate Account** - Futures data and execution
+- ✅ **Tastytrade Account** - Futures and options execution (API ready)
 - ✅ **Charles Schwab with thinkorswim** - Stocks/options data and execution
 - ✅ **NinjaTrader** - Alternative futures platform (if needed)
 - ✅ **TopStep, Apex, TradeDay Accounts** - Funded trading accounts
@@ -282,7 +284,86 @@ FRED_API_KEY=your_api_key
 
 ## Broker APIs
 
-### 8. Interactive Brokers (Optional Alternative)
+### 8. Tastytrade (IMMEDIATE ACCESS)
+
+**Cost**: Free (commission-based trading)
+**Website**: https://tastytrade.com/
+**Coverage**: US Equities, Options, and Futures
+
+**API Access Already Configured** ✅:
+- Client ID obtained
+- OAuth2 application created
+- Ready for immediate integration
+
+**OAuth2 Setup Process**:
+1. You've already created the OAuth client ✅
+2. Store credentials securely in `.env`
+3. Configure redirect URIs:
+   - Production: `traderterminal://oauth-callback`
+   - Development: `http://localhost:8000/oauth/tastytrade/callback`
+
+**Authentication Flow**:
+```python
+# Step 1: Direct user to authorization URL
+auth_url = f"https://my.tastytrade.com/auth.html?client_id={CLIENT_ID}&redirect_uri={REDIRECT_URI}&response_type=code&scope=read+trade"
+
+# Step 2: Exchange authorization code for tokens
+token_response = requests.post(
+    "https://api.tastyworks.com/oauth/token",
+    data={
+        "grant_type": "authorization_code",
+        "code": auth_code,
+        "client_id": CLIENT_ID,
+        "client_secret": CLIENT_SECRET,
+        "redirect_uri": REDIRECT_URI
+    }
+)
+
+# Step 3: Use refresh token for subsequent access
+refresh_response = requests.post(
+    "https://api.tastyworks.com/oauth/token",
+    data={
+        "grant_type": "refresh_token",
+        "refresh_token": saved_refresh_token,
+        "client_secret": CLIENT_SECRET
+    }
+)
+```
+
+**Sandbox Environment**:
+- Auth URL: `https://cert-my.staging-tasty.works/auth.html`
+- API Base: `https://api.cert.tastyworks.com`
+- Use for all testing before production
+
+**API Features**:
+- Real-time quotes for stocks, options, and futures
+- Options chains with Greeks
+- Futures contract specifications
+- Order placement for all asset types
+- WebSocket streaming for real-time updates
+- Account balances and positions
+
+**2FA Requirements**:
+- Required for `read` and `trade` scopes
+- User enters 2FA code on tastytrade's login page
+- Your app never handles 2FA codes directly
+
+**Environment Variables**:
+```bash
+TASTYTRADE_CLIENT_ID=e3f4389d-8216-40f6-af76-c7dc957977fe
+TASTYTRADE_CLIENT_SECRET=your_client_secret_here
+TASTYTRADE_REDIRECT_URI=traderterminal://oauth-callback
+TASTYTRADE_SANDBOX=true  # Set to false for production
+```
+
+**What You Get**:
+- Multi-asset trading (stocks, options, futures)
+- No additional data fees
+- Professional-grade API
+- Immediate access (no waiting for approval)
+- Sandbox environment for safe testing
+
+### 9. Interactive Brokers (Optional Alternative)
 
 **Cost**: Variable (commissions + data)
 **Website**: https://www.interactivebrokers.com/
@@ -299,7 +380,7 @@ FRED_API_KEY=your_api_key
 2. Enable API in Configuration
 3. Note the port (default: 7497 paper, 7496 live)
 
-### 9. Alpaca (Free Alternative)
+### 10. Alpaca (Free Alternative)
 
 **Cost**: Free (commission-free trading)
 **Website**: https://alpaca.markets/
@@ -313,7 +394,7 @@ FRED_API_KEY=your_api_key
 
 ## Funded Account Platform APIs
 
-### 6. TopstepX API (CRITICAL)
+### 11. TopstepX API (CRITICAL)
 
 **Cost**: Free (you already have TopStep accounts)
 **Purpose**: Execute trades on your TopStep funded accounts
@@ -323,7 +404,7 @@ FRED_API_KEY=your_api_key
 2. Request API documentation for TopstepX
 3. Mention you need programmatic access for your funded accounts
 
-### 7. Apex & TradeDay Notes
+### 12. Apex & TradeDay Notes
 
 **Important**: You do NOT need Rithmic data subscription since you use:
 - **Tradovate** for futures data (primary)
@@ -334,7 +415,7 @@ For Apex and TradeDay:
 - Mention you have your own data feed via Tradovate
 - This may reduce complexity and cost
 
-### 8. Charles Schwab API (Stocks & Options)
+### 13. Charles Schwab API (Stocks & Options)
 
 **Cost**: Free (you already have a Schwab account with thinkorswim)
 **Documentation**: https://developer.schwab.com/
@@ -407,6 +488,17 @@ LOG_LEVEL=INFO
 REDIS_URL=redis://localhost:6379
 
 # === MARKET DATA FEEDS ===
+
+# Tastytrade (Multi-Asset Trading - Immediate Access)
+TASTYTRADE_CLIENT_ID=e3f4389d-8216-40f6-af76-c7dc957977fe
+TASTYTRADE_CLIENT_SECRET=your_client_secret_here
+TASTYTRADE_REDIRECT_URI=traderterminal://oauth-callback
+TASTYTRADE_SANDBOX=true
+TASTYTRADE_API_URL=https://api.cert.tastyworks.com  # sandbox
+TASTYTRADE_AUTH_URL=https://cert-my.staging-tasty.works/auth.html  # sandbox
+# Production URLs (when ready):
+# TASTYTRADE_API_URL=https://api.tastyworks.com
+# TASTYTRADE_AUTH_URL=https://my.tastytrade.com/auth.html
 
 # Tradier (Required - $10/month)
 TRADIER_API_KEY=your_production_api_key
@@ -500,6 +592,9 @@ echo "- [ ] Tradier API Key ($10/month)"
 echo "- [ ] Tradovate API Credentials ($12/month)"  
 echo "- [ ] TheNewsAPI Key ($19/month)"
 echo
+echo "Already Configured:"
+echo "- [x] Tastytrade OAuth Client (FREE)"
+echo
 echo "Free APIs:"
 echo "- [ ] Alpha Vantage API Key"
 echo "- [ ] FRED API Key"
@@ -522,6 +617,7 @@ Use this checklist to track your progress:
 - [ ] Generate webhook secrets
 - [ ] Create .env file from template
 - [ ] Fork Kairos and Chronos repositories
+- [x] Tastytrade OAuth client created ✅
 
 ### Day 2 - Trading Accounts
 - [ ] Open Tradier account and fund with $100
@@ -622,15 +718,17 @@ Use this checklist to track your progress:
 
 ### Immediate Actions (Today):
 1. ✅ Configure TradingView webhook format
-2. ⬜ Get Tradovate API credentials from your account
-3. ⬜ Contact TopStep support for API access
-4. ⬜ Enable Schwab Developer API access
+2. ✅ Add Tastytrade credentials to .env
+3. ⬜ Get Tradovate API credentials from your account
+4. ⬜ Contact TopStep support for API access
+5. ⬜ Enable Schwab Developer API access
 
 ### Week 1 Priorities:
-1. ⬜ Implement Tradovate connector (futures)
-2. ⬜ Set up TradingView webhook receiver
-3. ⬜ Get TopstepX API documentation
-4. ⬜ Test futures execution flow
+1. ⬜ Implement Tastytrade connector (futures & options)
+2. ⬜ Implement Tradovate connector (futures)
+3. ⬜ Set up TradingView webhook receiver
+4. ⬜ Get TopstepX API documentation
+5. ⬜ Test multi-broker execution flow
 
 ### Week 2 Priorities:
 1. ⬜ Implement Schwab connector (stocks/options)

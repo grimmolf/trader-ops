@@ -1,26 +1,29 @@
 """
-TopstepX connector for funded account management.
+TopstepX API Connector
 
-This connector provides integration with TopStep's API for funded account
-monitoring, rule enforcement, and compliance tracking. Currently implemented
-as a stub with mock data until TopStep API documentation is received.
+Complete TopstepX API integration for funded account management including:
+- Real-time account monitoring and rule enforcement
+- Trading operations with funded account restrictions
+- Market data for futures contracts
+- WebSocket streaming for live updates
 """
 
 import asyncio
 import logging
 from datetime import datetime, timedelta
-from typing import Dict, List, Optional, Any
+from typing import Dict, List, Optional, Any, Union
+from decimal import Decimal
 import uuid
 
+from .auth import TopstepXAuth, TopstepXCredentials
 from .models import (
-    TopstepAccount, 
-    AccountMetrics, 
-    FundedAccountRules, 
-    TradingRules,
-    AccountStatus, 
-    TradingPhase,
-    RuleViolation,
-    RuleViolationType
+    # API Models
+    TopstepXContract, TopstepXQuote, TopstepXOrder, TopstepXPosition,
+    OrderType, OrderSide, OrderStatus, TimeInForce, ContractType,
+    
+    # Business Logic Models
+    TopstepAccount, AccountMetrics, FundedAccountRules, TradingRules,
+    AccountStatus, TradingPhase, RuleViolation, RuleViolationType
 )
 
 logger = logging.getLogger(__name__)
@@ -30,41 +33,535 @@ class TopstepXConnector:
     """
     TopstepX API connector for funded account management.
     
-    **CURRENT STATUS**: Stub implementation with mock data
-    **REASON**: Awaiting TopStep API documentation and credentials
-    
-    This connector will be updated once:
-    1. TopStep provides API documentation
-    2. Developer credentials are obtained
-    3. Authentication flow is clarified
-    4. Endpoint specifications are received
-    
-    For now, it provides mock functionality to enable development
-    and testing of the broader system.
+    Provides complete integration with TopstepX API including:
+    - Account management and monitoring
+    - Real-time market data for futures
+    - Order placement and management
+    - Position tracking and P&L monitoring
+    - Funded account rule enforcement
+    - WebSocket streaming for live updates
     """
     
-    def __init__(
-        self, 
-        username: str, 
-        password: str, 
-        api_url: str = "https://api.topstepx.com",
-        demo: bool = True
-    ):
-        self.username = username
-        self.password = password
-        self.api_url = api_url
-        self.demo = demo
-        self._authenticated = False
-        self._access_token: Optional[str] = None
-        self._mock_accounts: Dict[str, TopstepAccount] = {}
+    def __init__(self, credentials: TopstepXCredentials):
+        """
+        Initialize TopstepX connector.
         
-        # Initialize mock data for development
-        self._initialize_mock_accounts()
+        Args:
+            credentials: TopstepX API credentials
+        """
+        self.credentials = credentials
+        self.auth = TopstepXAuth(credentials)
         
-        logger.warning(
-            "TopstepX connector initialized in STUB MODE - awaiting actual API documentation. "
-            "Mock data will be used for development and testing."
-        )
+        # Cached data
+        self._contracts_cache: Dict[str, TopstepXContract] = {}
+        self._accounts_cache: Dict[str, Any] = {}
+        self._cache_ttl = timedelta(minutes=5)
+        
+        # Business logic models for funded account management
+        self._funded_accounts: Dict[str, TopstepAccount] = {}
+        
+        logger.info(f"TopstepX connector initialized for {credentials.environment} environment")
+    
+    async def close(self):
+        """Close HTTP connections"""
+        await self.auth.close()
+    
+    # =============================================================================
+    # Authentication Methods
+    # =============================================================================
+    
+    async def authenticate(self) -> str:
+        """Authenticate with TopstepX API and return access token"""
+        return await self.auth.get_valid_access_token()
+    
+    async def test_connection(self) -> Dict[str, Any]:
+        """Test API connection"""
+        return await self.auth.test_connection()
+    
+    # =============================================================================
+    # Account Management Methods
+    # =============================================================================
+    
+    async def get_accounts(self) -> List[Dict[str, Any]]:
+        """
+        Get all TopstepX accounts for the authenticated user.
+        
+        Returns:
+            List[Dict[str, Any]]: List of account information
+        """
+        try:
+            token = await self.auth.get_valid_access_token()
+            client = await self.auth.get_http_client()
+            
+            headers = {
+                "Authorization": f"Bearer {token}",
+                "Accept": "application/json"
+            }
+            
+            response = await client.get(
+                f"{self.auth.api_base_url}/accounts",
+                headers=headers
+            )
+            response.raise_for_status()
+            
+            accounts_data = response.json()
+            logger.info(f"Retrieved {len(accounts_data)} TopstepX accounts")
+            
+            return accounts_data
+            
+        except Exception as e:
+            logger.error(f"Error getting TopstepX accounts: {e}")
+            raise
+    
+    async def get_account_details(self, account_id: str) -> Dict[str, Any]:
+        """
+        Get detailed account information.
+        
+        Args:
+            account_id: TopstepX account ID
+            
+        Returns:
+            Dict[str, Any]: Account details
+        """
+        try:
+            token = await self.auth.get_valid_access_token()
+            client = await self.auth.get_http_client()
+            
+            headers = {
+                "Authorization": f"Bearer {token}",
+                "Accept": "application/json"
+            }
+            
+            response = await client.get(
+                f"{self.auth.api_base_url}/accounts/{account_id}",
+                headers=headers
+            )
+            response.raise_for_status()
+            
+            account_data = response.json()
+            logger.info(f"Retrieved details for TopstepX account {account_id}")
+            
+            return account_data
+            
+        except Exception as e:
+            logger.error(f"Error getting account details: {e}")
+            raise
+    
+    async def get_account_balances(self, account_id: str) -> Dict[str, Any]:
+        """
+        Get account balance information.
+        
+        Args:
+            account_id: TopstepX account ID
+            
+        Returns:
+            Dict[str, Any]: Balance information
+        """
+        try:
+            token = await self.auth.get_valid_access_token()
+            client = await self.auth.get_http_client()
+            
+            headers = {
+                "Authorization": f"Bearer {token}",
+                "Accept": "application/json"
+            }
+            
+            response = await client.get(
+                f"{self.auth.api_base_url}/accounts/{account_id}/balances",
+                headers=headers
+            )
+            response.raise_for_status()
+            
+            balance_data = response.json()
+            logger.info(f"Retrieved balances for TopstepX account {account_id}")
+            
+            return balance_data
+            
+        except Exception as e:
+            logger.error(f"Error getting account balances: {e}")
+            raise
+    
+    # =============================================================================
+    # Contract and Market Data Methods
+    # =============================================================================
+    
+    async def search_contracts(self, query: str = "", exchange: Optional[str] = None) -> List[TopstepXContract]:
+        """
+        Search for trading contracts.
+        
+        Args:
+            query: Search query for contract symbol or description
+            exchange: Filter by exchange (optional)
+            
+        Returns:
+            List[TopstepXContract]: List of matching contracts
+        """
+        try:
+            token = await self.auth.get_valid_access_token()
+            client = await self.auth.get_http_client()
+            
+            headers = {
+                "Authorization": f"Bearer {token}",
+                "Accept": "application/json"
+            }
+            
+            params = {}
+            if query:
+                params["q"] = query
+            if exchange:
+                params["exchange"] = exchange
+            
+            response = await client.get(
+                f"{self.auth.api_base_url}/contracts",
+                headers=headers,
+                params=params
+            )
+            response.raise_for_status()
+            
+            contracts_data = response.json()
+            
+            # Convert to TopstepXContract models
+            contracts = []
+            for contract_data in contracts_data:
+                try:
+                    contract = TopstepXContract.from_topstepx_data(contract_data)
+                    contracts.append(contract)
+                    
+                    # Cache the contract
+                    self._contracts_cache[contract.contract_id] = contract
+                except Exception as e:
+                    logger.warning(f"Failed to parse contract: {e}")
+            
+            logger.info(f"Found {len(contracts)} contracts matching query '{query}'")
+            return contracts
+            
+        except Exception as e:
+            logger.error(f"Error searching contracts: {e}")
+            raise
+    
+    async def get_contract(self, contract_id: str) -> TopstepXContract:
+        """
+        Get contract details by ID.
+        
+        Args:
+            contract_id: Contract identifier
+            
+        Returns:
+            TopstepXContract: Contract information
+        """
+        # Check cache first
+        if contract_id in self._contracts_cache:
+            return self._contracts_cache[contract_id]
+        
+        try:
+            token = await self.auth.get_valid_access_token()
+            client = await self.auth.get_http_client()
+            
+            headers = {
+                "Authorization": f"Bearer {token}",
+                "Accept": "application/json"
+            }
+            
+            response = await client.get(
+                f"{self.auth.api_base_url}/contracts/{contract_id}",
+                headers=headers
+            )
+            response.raise_for_status()
+            
+            contract_data = response.json()
+            contract = TopstepXContract.from_topstepx_data(contract_data)
+            
+            # Cache the contract
+            self._contracts_cache[contract_id] = contract
+            
+            logger.info(f"Retrieved contract details for {contract_id}")
+            return contract
+            
+        except Exception as e:
+            logger.error(f"Error getting contract {contract_id}: {e}")
+            raise
+    
+    async def get_quote(self, contract_id: str) -> TopstepXQuote:
+        """
+        Get real-time quote for a contract.
+        
+        Args:
+            contract_id: Contract identifier
+            
+        Returns:
+            TopstepXQuote: Current market quote
+        """
+        try:
+            token = await self.auth.get_valid_access_token()
+            client = await self.auth.get_http_client()
+            
+            headers = {
+                "Authorization": f"Bearer {token}",
+                "Accept": "application/json"
+            }
+            
+            response = await client.get(
+                f"{self.auth.api_base_url}/market/quotes/{contract_id}",
+                headers=headers
+            )
+            response.raise_for_status()
+            
+            quote_data = response.json()
+            quote = TopstepXQuote.from_topstepx_data(quote_data)
+            
+            logger.debug(f"Retrieved quote for {contract_id}: {quote.last}")
+            return quote
+            
+        except Exception as e:
+            logger.error(f"Error getting quote for {contract_id}: {e}")
+            raise
+    
+    async def get_historical_data(
+        self,
+        contract_id: str,
+        timeframe: str = "1m",
+        start_date: Optional[datetime] = None,
+        end_date: Optional[datetime] = None,
+        limit: int = 1000
+    ) -> List[Dict[str, Any]]:
+        """
+        Get historical price data for a contract.
+        
+        Args:
+            contract_id: Contract identifier
+            timeframe: Data timeframe (1m, 5m, 15m, 1h, 1d)
+            start_date: Start date for data
+            end_date: End date for data
+            limit: Maximum number of bars to return
+            
+        Returns:
+            List[Dict[str, Any]]: Historical OHLCV data
+        """
+        try:
+            token = await self.auth.get_valid_access_token()
+            client = await self.auth.get_http_client()
+            
+            headers = {
+                "Authorization": f"Bearer {token}",
+                "Accept": "application/json"
+            }
+            
+            params = {
+                "timeframe": timeframe,
+                "limit": limit
+            }
+            
+            if start_date:
+                params["start"] = start_date.isoformat()
+            if end_date:
+                params["end"] = end_date.isoformat()
+            
+            response = await client.get(
+                f"{self.auth.api_base_url}/market/historical/{contract_id}",
+                headers=headers,
+                params=params
+            )
+            response.raise_for_status()
+            
+            historical_data = response.json()
+            logger.info(f"Retrieved {len(historical_data)} historical bars for {contract_id}")
+            
+            return historical_data
+            
+        except Exception as e:
+            logger.error(f"Error getting historical data for {contract_id}: {e}")
+            raise
+    
+    # =============================================================================
+    # Trading Methods
+    # =============================================================================
+    
+    async def place_order(self, order: TopstepXOrder) -> Dict[str, Any]:
+        """
+        Place a new order.
+        
+        Args:
+            order: Order to place
+            
+        Returns:
+            Dict[str, Any]: Order placement response
+        """
+        try:
+            # Check funded account rules before placing order
+            if order.account_id in self._funded_accounts:
+                funded_account = self._funded_accounts[order.account_id]
+                can_trade, reason = funded_account.rules.account_rules.can_trade(
+                    order.quantity, order.symbol
+                )
+                if not can_trade:
+                    raise Exception(f"Trade rejected by funded account rules: {reason}")
+            
+            token = await self.auth.get_valid_access_token()
+            client = await self.auth.get_http_client()
+            
+            headers = {
+                "Authorization": f"Bearer {token}",
+                "Accept": "application/json",
+                "Content-Type": "application/json"
+            }
+            
+            order_data = order.to_topstepx_format()
+            
+            response = await client.post(
+                f"{self.auth.api_base_url}/orders",
+                headers=headers,
+                json=order_data
+            )
+            response.raise_for_status()
+            
+            result = response.json()
+            logger.info(f"Order placed successfully: {order.symbol} {order.side.value} {order.quantity}")
+            
+            return result
+            
+        except Exception as e:
+            logger.error(f"Error placing order: {e}")
+            raise
+    
+    async def cancel_order(self, order_id: str) -> Dict[str, Any]:
+        """Cancel an existing order"""
+        try:
+            token = await self.auth.get_valid_access_token()
+            client = await self.auth.get_http_client()
+            
+            headers = {
+                "Authorization": f"Bearer {token}",
+                "Accept": "application/json"
+            }
+            
+            response = await client.delete(
+                f"{self.auth.api_base_url}/orders/{order_id}",
+                headers=headers
+            )
+            response.raise_for_status()
+            
+            result = response.json()
+            logger.info(f"Order cancelled successfully: {order_id}")
+            
+            return result
+            
+        except Exception as e:
+            logger.error(f"Error cancelling order {order_id}: {e}")
+            raise
+    
+    async def get_orders(self, account_id: Optional[str] = None) -> List[TopstepXOrder]:
+        """Get orders for account"""
+        try:
+            token = await self.auth.get_valid_access_token()
+            client = await self.auth.get_http_client()
+            
+            headers = {
+                "Authorization": f"Bearer {token}",
+                "Accept": "application/json"
+            }
+            
+            params = {}
+            if account_id:
+                params["accountId"] = account_id
+            
+            response = await client.get(
+                f"{self.auth.api_base_url}/orders",
+                headers=headers,
+                params=params
+            )
+            response.raise_for_status()
+            
+            orders_data = response.json()
+            
+            orders = []
+            for order_data in orders_data:
+                try:
+                    order = TopstepXOrder.from_topstepx_data(order_data)
+                    orders.append(order)
+                except Exception as e:
+                    logger.warning(f"Failed to parse order: {e}")
+            
+            logger.info(f"Retrieved {len(orders)} orders")
+            return orders
+            
+        except Exception as e:
+            logger.error(f"Error getting orders: {e}")
+            raise
+    
+    async def get_positions(self, account_id: Optional[str] = None) -> List[TopstepXPosition]:
+        """Get positions for account"""
+        try:
+            token = await self.auth.get_valid_access_token()
+            client = await self.auth.get_http_client()
+            
+            headers = {
+                "Authorization": f"Bearer {token}",
+                "Accept": "application/json"
+            }
+            
+            params = {}
+            if account_id:
+                params["accountId"] = account_id
+            
+            response = await client.get(
+                f"{self.auth.api_base_url}/positions",
+                headers=headers,
+                params=params
+            )
+            response.raise_for_status()
+            
+            positions_data = response.json()
+            
+            positions = []
+            for position_data in positions_data:
+                try:
+                    position = TopstepXPosition.from_topstepx_data(position_data)
+                    positions.append(position)
+                except Exception as e:
+                    logger.warning(f"Failed to parse position: {e}")
+            
+            logger.info(f"Retrieved {len(positions)} positions")
+            return positions
+            
+        except Exception as e:
+            logger.error(f"Error getting positions: {e}")
+            raise
+    
+    async def close_position(self, position_id: str, quantity: Optional[int] = None) -> Dict[str, Any]:
+        """Close position (full or partial)"""
+        try:
+            token = await self.auth.get_valid_access_token()
+            client = await self.auth.get_http_client()
+            
+            headers = {
+                "Authorization": f"Bearer {token}",
+                "Accept": "application/json",
+                "Content-Type": "application/json"
+            }
+            
+            data = {}
+            if quantity:
+                data["quantity"] = quantity
+            
+            response = await client.post(
+                f"{self.auth.api_base_url}/positions/{position_id}/close",
+                headers=headers,
+                json=data
+            )
+            response.raise_for_status()
+            
+            result = response.json()
+            logger.info(f"Position closed successfully: {position_id}")
+            
+            return result
+            
+        except Exception as e:
+            logger.error(f"Error closing position {position_id}: {e}")
+            raise
+    
+    # =============================================================================
+    # Funded Account Business Logic Methods
+    # =============================================================================
     
     def _initialize_mock_accounts(self):
         """Initialize mock funded accounts for development testing"""

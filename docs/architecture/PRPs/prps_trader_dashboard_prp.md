@@ -5,7 +5,7 @@
 - **Date**: July 2025
 - **Confidence Score**: 9/10
 - **Estimated Implementation Time**: 2-3 weeks for MVP (reduced from 3-4 weeks)
-- **Primary Technologies**: Electron/Tauri, FastAPI, TradingView Premium Webhooks, Tradovate, Charles Schwab
+- **Primary Technologies**: Electron/Tauri, FastAPI, TradingView Premium Webhooks, Tradovate, Tastytrade, Charles Schwab
 - **Target Platforms**: macOS (Apple Silicon) primary, Fedora 40+ secondary
 
 ## Executive Summary
@@ -58,11 +58,12 @@ Based on development logs and code review, the project has made substantial prog
 #### Critical Path Items (Revised for User's Setup)
 1. **TradingView Webhook Integration** (Week 1 - Already has Premium)
 2. **Tradovate Futures Integration** (Week 1 - CRITICAL for funded accounts)
-3. **TopstepX API Integration** (Week 1 - CRITICAL for TopStep execution)
-4. **Charles Schwab Integration** (Week 2 - For stocks/options)
-5. **Funded Account Risk Management** (Week 1 - CRITICAL)
-6. **Desktop UI Polish** (Week 2 - Connect real feeds, add dashboards)
-7. **Deployment & Packaging** (Week 3 - macOS primary)
+3. **Tastytrade Integration** (Week 1 - Futures & options while waiting on other keys)
+4. **TopstepX API Integration** (Week 1 - CRITICAL for TopStep execution)
+5. **Charles Schwab Integration** (Week 2 - For stocks/options)
+6. **Funded Account Risk Management** (Week 1 - CRITICAL)
+7. **Desktop UI Polish** (Week 2 - Connect real feeds, add dashboards)
+8. **Deployment & Packaging** (Week 3 - macOS primary)
 
 ## LLM Orchestration Directives
 
@@ -388,6 +389,60 @@ class TradovateAccount:
         # Implementation
 ```
 
+#### Step 0.25: Tastytrade Connector Implementation (Days 2-3)
+
+With Tradovate handling primary futures and tastytrade offering both futures **and** options, integrating tastytrade early allows live multi-asset trading while Schwab and TopstepX credentials are pending.
+
+##### Task 0.25.1: OAuth2 Flow
+```python
+# Create src/backend/feeds/tastytrade/auth.py
+"""Handle OAuth2 code-grant for tastytrade."""
+class TastytradeAuth:
+    def __init__(self, client_id: str, client_secret: str, redirect_uri: str):
+        # Store creds and tokens
+        ...
+    async def exchange_code(self, code: str) -> None: ...
+    async def refresh(self) -> str: ...  # returns fresh access_token
+```
+
+##### Task 0.25.2: Orders & Accounts
+```python
+# Create src/backend/feeds/tastytrade/orders.py
+class TastytradeOrders:
+    async def place_order(...): ...
+    async def cancel_order(...): ...
+
+# Create src/backend/feeds/tastytrade/account.py
+class TastytradeAccount:
+    async def get_balances(...): ...
+    async def get_positions(...): ...
+```
+
+##### Task 0.25.3: Market Data & Streaming
+```python
+# Create src/backend/feeds/tastytrade/market_data.py
+class TastytradeMarketData:
+    async def get_quotes(...): ...
+# Create src/backend/feeds/tastytrade/stream.py
+class TastytradeStream:
+    async def connect_ws(...): ...  # real-time fills & quotes
+```
+
+##### Task 0.25.4: FastAPI OAuth Callback
+```python
+# Add to src/backend/routes/oauth.py
+@router.get("/oauth/tastytrade/callback")
+async def tastytrade_callback(code: str, state: str = None):
+    await tasty_auth.exchange_code(code)
+    return RedirectResponse(url="traderterminal://oauth-success")
+```
+
+##### Task 0.25.5: Electron Deep-Link Handler
+Add `linking.ts` in Electron main process to capture `traderterminal://oauth-success` and notify renderer.
+
+##### Task 0.25.6: E2E Test
+`tests/e2e/test_tastytrade_flow.py` – mock OAuth → place order → verify status.
+
 #### Step 0.3: TopstepX Integration (Days 2-3)
 
 ##### Task 0.3.1: Research TopstepX API
@@ -556,8 +611,8 @@ export const useFundedAccountsStore = defineStore('fundedAccounts', () => {
         <span class="current">${{ current.toFixed(2) }}</span>
         <span class="limit">/ ${{ limit.toFixed(2) }}</span>
       </div>
+      </div>
     </div>
-  </div>
 </template>
 
 <script setup lang="ts">
@@ -1093,7 +1148,7 @@ async def test_complete_trading_flow():
             headers={"X-Webhook-Signature": generate_test_signature(webhook_data)}
         )
         
-        assert response.status_code == 200
+    assert response.status_code == 200
         alert_id = response.json()["alert_id"]
         
         # Step 3: Verify order was placed

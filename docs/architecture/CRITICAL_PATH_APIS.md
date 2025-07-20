@@ -14,6 +14,7 @@ This document outlines the critical APIs needed for immediate frontend testing, 
 ### Execution Platforms
 - **Futures**: TopstepX (TopStep), Tradovate direct
 - **Stocks/Options**: Charles Schwab (thinkorswim)
+- **Futures & Options**: Tastytrade (immediate availability)
 - **Funded Accounts**: Apex and TradeDay (execution only, data via Tradovate/NinjaTrader)
 
 ## Priority 1: Immediate Testing Needs
@@ -41,6 +42,37 @@ This document outlines the critical APIs needed for immediate frontend testing, 
   POST /order/modifyOrder     # Modify orders
   POST /order/cancelOrder     # Cancel orders
   ```
+
+### 2.5. Tastytrade API (Week 1 - IMMEDIATE AVAILABILITY)
+- **Cost**: FREE (no additional data fees)
+- **Purpose**: Futures AND options execution with immediate API access
+- **OAuth Setup**: Already configured with client credentials
+- **Critical Features**:
+  ```python
+  # OAuth2 Authentication
+  POST /oauth/token              # Exchange code for tokens
+  POST /oauth/token              # Refresh access token
+  
+  # Account endpoints
+  GET /accounts                  # List accounts
+  GET /accounts/{id}/balances    # Get balances
+  GET /accounts/{id}/positions   # Get positions
+  
+  # Market data
+  GET /markets/quotes            # Real-time quotes
+  GET /options/chains            # Options chains
+  GET /futures/chains            # Futures contracts
+  
+  # Trading
+  POST /orders                   # Place order
+  DELETE /orders/{id}            # Cancel order
+  GET /orders                    # List orders
+  
+  # WebSocket
+  WSS /streamer                  # Real-time streaming
+  ```
+
+**Implementation Priority**: Week 1 - Since Schwab and TopstepX keys are delayed, tastytrade provides immediate futures AND options access
 
 ### 3. TopstepX API (Week 1 - CRITICAL)
 - **Purpose**: Execute trades on TopStep funded accounts
@@ -115,6 +147,25 @@ uv run uvicorn src.backend.datahub.server:app --reload
 # Frontend connects to mock endpoints
 # Test all UI components with simulated data
 ```
+
+### Phase 1.5: Tastytrade Integration (Week 1 - IMMEDIATE)
+1. **OAuth2 Setup**:
+   - Client ID already obtained ✅
+   - Redirect URI: `traderterminal://oauth-callback`
+   - Dev redirect: `http://localhost:8000/oauth/tastytrade/callback`
+
+2. **Sandbox Testing**:
+   ```python
+   # Use sandbox environment for testing
+   TASTYTRADE_API_URL = "https://api.cert.tastyworks.com"
+   TASTYTRADE_AUTH_URL = "https://cert-my.staging-tasty.works/auth.html"
+   ```
+
+3. **Test Both Asset Classes**:
+   - Test futures orders (ES, NQ, etc.)
+   - Test options orders (SPY, QQQ, etc.)
+   - Verify real-time streaming
+   - Check position updates
 
 ### Phase 2: Tradovate Integration (Week 1)
 1. **Get Tradovate Demo Account**:
@@ -210,6 +261,12 @@ Add to your `.env`:
 ```bash
 # === CRITICAL PATH APIS ===
 
+# Tastytrade (Futures & Options - IMMEDIATE ACCESS)
+TASTYTRADE_CLIENT_ID=e3f4389d-8216-40f6-af76-c7dc957977fe
+TASTYTRADE_CLIENT_SECRET=your_client_secret_here
+TASTYTRADE_REDIRECT_URI=traderterminal://oauth-callback
+TASTYTRADE_SANDBOX=true  # Use sandbox for testing
+
 # Tradovate (Futures Data & Execution)
 TRADOVATE_USERNAME=your_username
 TRADOVATE_PASSWORD=your_password
@@ -244,7 +301,14 @@ USE_RITHMIC_DATA=false  # Important: Set to false
 - [ ] Verify order flow
 - [ ] Check real-time updates
 
+### Day 2: Tastytrade Integration
+- [ ] Configure OAuth2 flow in Electron
+- [ ] Test authentication flow
+- [ ] Connect to sandbox environment
+- [ ] Test futures and options orders
+
 ### Week 1: Critical Path
+- [ ] Complete tastytrade connector
 - [ ] Sign up for Tradovate demo
 - [ ] Implement Tradovate connector
 - [ ] Contact TopStep for API docs

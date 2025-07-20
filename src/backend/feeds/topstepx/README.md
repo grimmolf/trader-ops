@@ -1,52 +1,87 @@
-# TopstepX API Integration Notes
+# TopstepX API Integration
 
 ## Overview
 
-TopstepX integration for funded account management and rule enforcement.
-This module provides connectivity to TopStep's API for monitoring account
-metrics, enforcing trading rules, and managing funded account lifecycle.
+TopstepX API integration for funded futures trading accounts in TraderTerminal. This connector provides real-time market data, order execution, and account management for Topstep funded traders.
 
-## API Research Status
+## API Documentation
 
-**Status**: Research Required
-**Priority**: Critical Path - Week 1
+### Official Resources
+- **Developer Portal**: https://dashboard.projectx.com/
+- **Help Center**: https://help.topstep.com/en/articles/11187768-topstepx-api-access
+- **Community Python Library**: https://github.com/mceesincus/tsxapi4py
+- **Discord Support**: #api-trading channel in Topstep Discord
 
-### Required Actions
+### API Products
+- **REST API**: Account management, order placement, historical data
+- **WebSocket API**: Real-time market data and account updates
+- **Market Data**: Level 1 and Level 2 data for futures contracts
 
-1. **Contact TopStep Support**
-   - Email: support@topstep.com
-   - Request API documentation for TopstepX platform
-   - Request developer sandbox/demo credentials
-   - Inquire about webhook notifications for rule violations
+## Authentication Setup
 
-2. **Expected API Endpoints** (To be confirmed)
-   ```
-   Authentication:
-   POST /api/auth/login
-   POST /api/auth/refresh
-   
-   Account Management:
-   GET /api/accounts/{id}
-   GET /api/accounts/{id}/metrics
-   GET /api/accounts/{id}/rules
-   GET /api/accounts/{id}/violations
-   
-   Trading Activity:
-   GET /api/accounts/{id}/trades
-   GET /api/accounts/{id}/positions
-   POST /api/accounts/{id}/emergency-close
-   
-   Monitoring:
-   GET /api/accounts/{id}/realtime-metrics
-   WebSocket: /ws/accounts/{id}/updates
-   ```
+### 1. API Access Subscription
+1. Access TopstepX dashboard at https://dashboard.projectx.com/
+2. Navigate to "Subscriptions" → "ProjectX API Access"
+3. Subscribe for $29/month (use "topstep" promo code for 50% off = $14.50/month)
+4. Generate API key in ProjectX settings
 
-3. **Expected Data Models**
-   - Account information and status
-   - Trading rules and limits
-   - Real-time P&L and drawdown metrics
-   - Violation alerts and notifications
-   - Trading activity and audit trail
+### 2. Authentication Flow
+- **Authentication**: OAuth using API key
+- **Token Management**: Bearer tokens with automatic refresh
+- **Environment**: LIVE and DEMO environments supported
+
+## API Endpoints
+
+### Base URLs
+- **REST API**: `https://api.projectx.com/v1`
+- **WebSocket Market Data**: `wss://api.projectx.com/markethub`
+- **WebSocket User Data**: `wss://api.projectx.com/userhub`
+
+### Key Endpoints
+```
+Authentication:
+POST /auth/token                        # OAuth token exchange
+
+Account Management:
+GET  /accounts                          # Get account list
+GET  /accounts/{accountId}              # Get account details
+GET  /accounts/{accountId}/balances     # Get account balances
+
+Market Data:
+GET  /contracts                         # Search contracts
+GET  /contracts/{contractId}            # Get contract details
+GET  /market/historical                 # Get historical data
+WS   /markethub                         # Real-time market data
+
+Trading:
+POST /orders                            # Place order
+GET  /orders                            # Get orders
+PUT  /orders/{orderId}                  # Modify order
+DELETE /orders/{orderId}                # Cancel order
+
+Positions:
+GET  /positions                         # Get positions
+POST /positions/{positionId}/close      # Close position
+```
+
+## Rate Limits
+- **API Calls**: Standard rate limiting (not publicly documented)
+- **WebSocket**: Real-time streaming with connection limits
+- **Production**: Monitor for rate limit responses
+
+## Security Considerations & Restrictions
+
+### Critical Restrictions
+- **Device Requirement**: All activity must originate from personal device
+- **No VPS/VPN**: Use of VPS, VPNs, or remote servers is strictly prohibited
+- **No Sandbox**: Production environment only, no test/sandbox available
+- **Final Trades**: All API trades are final and non-reversible
+
+### Security Best practices
+- Store API keys securely using environment variables
+- Implement proper token rotation
+- Use HTTPS only for REST API calls
+- Validate all WebSocket connections
 
 ## Critical Features for Implementation
 
@@ -75,42 +110,87 @@ The TopstepX connector must integrate with:
 - Real-time position monitoring
 - Emergency stop-loss mechanisms
 
-## Implementation Plan
+## Integration Features
 
-### Phase 1: Research & Setup (Current)
-- [ ] Contact TopStep for API access
-- [ ] Obtain API documentation
-- [ ] Set up developer credentials
-- [ ] Understand authentication flow
+### Real-Time Capabilities
+- Live market data streaming (quotes, trades, depth)
+- Real-time account updates (orders, positions, balances)
+- Connection state management (connected, disconnected, error)
 
-### Phase 2: Core Integration
-- [ ] Implement authentication
-- [ ] Create account metrics polling
-- [ ] Build rule enforcement engine
-- [ ] Add violation detection
+### Trading Operations
+- Multiple order types (Market, Limit, Stop, Stop-Limit)
+- Order modification and cancellation
+- Position management and partial closes
+- Trade history and order status tracking
 
-### Phase 3: Real-time Features
-- [ ] WebSocket connectivity
-- [ ] Real-time rule monitoring
-- [ ] Emergency position management
-- [ ] Alert notifications
+### Account Management
+- Multi-account support for funded accounts
+- Real-time balance and buying power updates
+- Position tracking with P&L calculations
+- Risk management integration for funded account rules
 
-## Current Implementation Status
+## Funded Account Specific Features
 
-**Stub Implementation**: Basic models and placeholder connector created for development.
-The current implementation provides mock data for testing until actual API access is obtained.
+### Account Rules Integration
+- **Daily Loss Limits**: Automated monitoring of daily drawdown limits
+- **Trailing Drawdown**: Track maximum account balance and trailing stops
+- **Position Sizing**: Enforce maximum position size limits per contract
+- **Risk Management**: Real-time risk checks before order placement
 
-### Mock Rules (For Testing)
-```python
-mock_rules = FundedAccountRules(
-    max_daily_loss=1000,
-    max_contracts=3, 
-    trailing_drawdown=2000,
-    profit_target=3000,
-    current_daily_pnl=-250,
-    current_drawdown=500
-)
+### Performance Tracking
+- Daily P&L monitoring
+- Account balance progression
+- Trading statistics and metrics
+- Rule compliance reporting
+
+## Environment Variables
+```bash
+TOPSTEPX_API_KEY=your_api_key
+TOPSTEPX_USERNAME=your_username
+TOPSTEPX_ENVIRONMENT=LIVE  # or DEMO
+TOPSTEPX_WEBHOOK_SECRET=webhook_secret_for_validation
 ```
+
+## Integration Status
+- 🚧 **In Development**: Authentication and API client
+- 📅 **Planned**: Market data connector
+- 📅 **Planned**: Trading connector with funded account rules
+- 📅 **Planned**: Real-time WebSocket streaming
+- 📅 **Planned**: Integration with TraderTerminal webhook system
+
+## Implementation Notes
+
+### Funded Account Considerations
+- Each funded account has specific risk parameters
+- Daily loss limits must be enforced in real-time
+- Trailing drawdown monitoring is critical
+- Position sizing must respect account rules
+
+### WebSocket Implementation
+- SignalR-based WebSocket connections
+- Automatic reconnection handling
+- Callback system for data handling
+- Connection state monitoring
+
+### Error Handling
+- API error response parsing
+- Network failure recovery
+- Rate limit handling
+- Connection loss recovery
+
+## Testing Strategy
+
+### Development Testing
+- Use personal funded accounts for testing
+- Implement comprehensive logging
+- Test all order types and scenarios
+- Validate risk rule enforcement
+
+### Risk Management Testing
+- Test daily loss limit enforcement
+- Validate trailing drawdown calculations
+- Test position size limits
+- Verify real-time risk checks
 
 ## Integration Points
 
@@ -125,16 +205,6 @@ TradingView Alert → Webhook Receiver → TopstepX Rules Check → Tradovate Ex
 3. **Post-execution**: Validate trades against account rules
 4. **Emergency**: Flatten positions on rule violations
 
-## Next Steps
+---
 
-1. **Immediate**: Contact TopStep support for API access
-2. **Week 1**: Implement core rule enforcement with mock data
-3. **Week 2**: Integrate real API once documentation is received
-4. **Week 3**: Add advanced monitoring and violation handling
-
-## Notes
-
-- TopstepX is critical for funded account trading
-- Rule violations can result in account termination
-- Real-time monitoring is essential for compliance
-- Emergency position flattening must be reliable
+**Important**: This integration is designed for personal use with Topstep funded accounts. Ensure compliance with Topstep's Terms of Service and funded account rules. All trading activities must originate from your personal device.

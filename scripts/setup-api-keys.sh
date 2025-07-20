@@ -20,6 +20,12 @@ REDIS_URL=redis://localhost:6379
 
 # === MARKET DATA FEEDS ===
 
+# Tastytrade (Multi-Asset Trading - FREE)
+TASTYTRADE_CLIENT_ID=e3f4389d-8216-40f6-af76-c7dc957977fe
+TASTYTRADE_CLIENT_SECRET=
+TASTYTRADE_REDIRECT_URI=traderterminal://oauth-callback
+TASTYTRADE_SANDBOX=true
+
 # Tradier (Required - $10/month)
 TRADIER_API_KEY=your_production_api_key
 TRADIER_ACCOUNT_ID=your_account_number
@@ -66,13 +72,13 @@ TOPSTEPX_PASSWORD=your_topstep_password
 TOPSTEPX_API_URL=https://api.topstepx.com
 TOPSTEPX_WS_URL=wss://api.topstepx.com/ws
 
-# Rithmic (For Apex & TradeDay - Optional $100-200/month)
-RITHMIC_USERNAME=your_rithmic_username
-RITHMIC_PASSWORD=your_rithmic_password
-RITHMIC_GATEWAY_LIVE=gateway.rithmic.com:9200
-RITHMIC_GATEWAY_TEST=testgateway.rithmic.com:9200
-RITHMIC_SYSTEM=Apex_LIVE  # or TradeDay_LIVE
-RITHMIC_INFRA_TYPE=ticker_plant
+# Apex & TradeDay (Execution Only - Data via Tradovate)
+# Note: User does NOT use Rithmic for data
+APEX_API_KEY=your_apex_api_key
+APEX_API_SECRET=your_apex_api_secret
+TRADEDAY_API_KEY=your_tradeday_api_key
+TRADEDAY_API_SECRET=your_tradeday_api_secret
+USE_RITHMIC_DATA=false  # Important: Set to false
 
 # Funded Account Configuration
 DEFAULT_FUNDED_ACCOUNTS=topstep_001,topstep_002,apex_001,tradeday_001
@@ -113,6 +119,9 @@ echo "1. Open src/backend/.env in your editor"
 echo "2. Add your API keys following the API_ACCESS_GUIDE.md"
 echo "3. NEVER commit .env to git!"
 echo
+echo "Already Configured:"
+echo "- [x] Tastytrade OAuth Client (FREE)"
+echo
 echo "Required APIs ($41/month total):"
 echo "- [ ] Tradier API Key ($10/month)"
 echo "- [ ] Tradovate API Credentials ($12/month)"  
@@ -136,14 +145,15 @@ echo "Step 2: Configure API Keys"
 echo "=========================="
 echo
 echo "Critical Path APIs (for futures trading):"
-echo "1. Tradovate Demo - Sign up at: https://demo.tradovate.com"
-echo "2. TopstepX - Contact support@topstep.com for API access"
-echo "3. Tradier - For stocks/options: https://developer.tradier.com"
+echo "1. Tastytrade - Add client secret (already have client ID!)"
+echo "2. Tradovate Demo - Sign up at: https://demo.tradovate.com"
+echo "3. TopstepX - Contact support@topstep.com for API access"
+echo "4. Tradier - For stocks/options: https://developer.tradier.com"
 echo
 echo "Optional APIs (can be added later):"
-echo "4. Rithmic - For Apex/TradeDay: sales@rithmic.com"
-echo "5. TheNewsAPI - Financial news: https://www.thenewsapi.com"
-echo "6. Alpha Vantage - Free tier: https://www.alphavantage.co/support/#api-key"
+echo "5. Apex/TradeDay - Contact for execution-only API access"
+echo "6. TheNewsAPI - Financial news: https://www.thenewsapi.com"
+echo "7. Alpha Vantage - Free tier: https://www.alphavantage.co/support/#api-key"
 echo
 
 # Create funded accounts configuration
@@ -178,10 +188,10 @@ accounts:
       trailing_drawdown: 2000
       profit_target: 3000
 
-  # Apex Accounts (via Rithmic)
+  # Apex Accounts (via Tradovate data)
   apex_001:
     platform: apex
-    connector: rithmic
+    connector: tradovate  # Data via Tradovate, execution via Apex
     account_id: "APX50K001"
     size: 50000
     rules:
@@ -191,10 +201,10 @@ accounts:
       profit_target: 3000
       news_trading_allowed: false
 
-  # TradeDay Accounts (via Rithmic)
+  # TradeDay Accounts (via Tradovate data)
   tradeday_001:
     platform: tradeday
-    connector: rithmic
+    connector: tradovate  # Data via Tradovate, execution via TradeDay
     account_id: "TD150K001"
     size: 150000
     rules:
