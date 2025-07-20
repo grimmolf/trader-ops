@@ -1,0 +1,37 @@
+{
+  "template_name": "Bug Fix",
+  "template_version": "1.0", 
+  "description": "Template for bug fix development sessions",
+  "prompts": {
+    "session_info": {
+      "objective": "What bug are you fixing?",
+      "context": "How was the bug discovered? Include reproduction steps",
+      "impact": "What is the impact and severity of this bug?"
+    },
+    "analysis": {
+      "root_cause": "What was the root cause of the bug?",
+      "investigation": "What investigation steps were taken to identify the cause?",
+      "affected_components": "Which system components are affected?"
+    },
+    "technical": {
+      "approach": "Describe your fix approach and why this solution was chosen",
+      "decisions": "What alternative fixes were considered and why were they rejected?",
+      "side_effects": "Any potential side effects or regressions to watch for?"
+    },
+    "implementation": {
+      "files_changed": "List all files modified and the specific changes made",
+      "backwards_compatibility": "Does this fix maintain backwards compatibility?",
+      "testing": "How was the fix tested? Include regression testing"
+    },
+    "validation": {
+      "reproduction": "Steps to reproduce the original bug",
+      "verification": "Steps to verify the fix works correctly",
+      "edge_cases": "Edge cases tested to ensure robustness"
+    },
+    "prevention": {
+      "monitoring": "Monitoring or alerting added to prevent future occurrences?",
+      "process": "Process improvements to prevent similar bugs?",
+      "documentation": "Documentation updates needed?"
+    }
+  }
+}

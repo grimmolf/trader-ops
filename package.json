@@ -1,0 +1,75 @@
+{
+  "name": "trader-ops-desktop",
+  "version": "0.1.0",
+  "description": "Cross-Platform Trading Dashboard Desktop Application",
+  "main": "build/main.js",
+  "scripts": {
+    "build": "tsc && electron-builder",
+    "build:main": "tsc -p config/tsconfig.main.json",
+    "build:renderer": "vite build --config config/vite.config.ts",
+    "dev": "concurrently \"npm run dev:main\" \"npm run dev:renderer\"",
+    "dev:main": "tsc -p tsconfig.main.json -w",
+    "dev:renderer": "vite",
+    "electron": "electron build/main.js",
+    "electron:dev": "electron build/main.js --dev",
+    "pack": "electron-builder --dir",
+    "dist": "electron-builder",
+    "test:e2e": "playwright test",
+    "test:e2e:headed": "playwright test --headed",
+    "postinstall": "electron-builder install-app-deps"
+  },
+  "keywords": [
+    "trading",
+    "dashboard",
+    "electron",
+    "real-time",
+    "charts"
+  ],
+  "author": "Trader",
+  "license": "MIT",
+  "devDependencies": {
+    "@playwright/test": "^1.40.0",
+    "@types/node": "^20.9.0",
+    "@types/ws": "^8.18.1",
+    "@vitejs/plugin-vue": "^4.5.0",
+    "concurrently": "^8.2.2",
+    "electron": "^27.1.2",
+    "electron-builder": "^24.6.4",
+    "typescript": "^5.2.2",
+    "vite": "^5.0.0",
+    "vue": "^3.3.8"
+  },
+  "dependencies": {
+    "electron-updater": "^6.1.7",
+    "ws": "^8.14.2"
+  },
+  "build": {
+    "appId": "com.trader.ops",
+    "productName": "Trader Ops",
+    "directories": {
+      "buildResources": "build",
+      "output": "release"
+    },
+    "files": [
+      "build/**/*",
+      "package.json"
+    ],
+    "mac": {
+      "target": {
+        "target": "dmg",
+        "arch": [
+          "arm64",
+          "x64"
+        ]
+      },
+      "category": "public.app-category.finance"
+    },
+    "linux": {
+      "target": [
+        "AppImage",
+        "rpm"
+      ],
+      "category": "Office"
+    }
+  }
+}

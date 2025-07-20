@@ -1,0 +1,36 @@
+{
+  "template_name": "Feature Development",
+  "template_version": "1.0",
+  "description": "Template for new feature development sessions",
+  "prompts": {
+    "session_info": {
+      "objective": "What feature are you implementing?",
+      "context": "What user need or business requirement does this feature address?",
+      "acceptance_criteria": "What are the acceptance criteria for this feature?"
+    },
+    "technical": {
+      "approach": "Describe your implementation approach and design patterns used",
+      "decisions": "What technical decisions were made? Consider alternatives evaluated",
+      "architecture": "How does this feature fit into the existing architecture?",
+      "dependencies": "What new dependencies or services are required?"
+    },
+    "implementation": {
+      "files_changed": "List all files modified and the nature of changes",
+      "database": "Any database schema changes or migrations?",
+      "api_changes": "New or modified API endpoints?",
+      "frontend": "Frontend components or pages modified?",
+      "testing": "Unit tests, integration tests, and manual testing performed"
+    },
+    "quality": {
+      "validation": "How was the feature validated against acceptance criteria?",
+      "performance": "Performance testing and optimization considerations",
+      "accessibility": "Accessibility considerations and testing",
+      "security": "Security implications and mitigations"
+    },
+    "deployment": {
+      "configuration": "Environment variables or configuration changes needed?",
+      "rollout": "Deployment strategy and rollback plan",
+      "monitoring": "Monitoring and alerting considerations"
+    }
+  }
+}

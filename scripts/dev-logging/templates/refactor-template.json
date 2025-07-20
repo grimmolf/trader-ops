@@ -1,0 +1,41 @@
+{
+  "template_name": "Refactoring",
+  "template_version": "1.0",
+  "description": "Template for code refactoring and improvement sessions", 
+  "prompts": {
+    "session_info": {
+      "objective": "What are you refactoring and why?",
+      "context": "What problems with the current code led to this refactoring?",
+      "scope": "What is the scope of this refactoring effort?"
+    },
+    "analysis": {
+      "current_issues": "What specific issues exist in the current implementation?",
+      "metrics": "Any metrics showing the need for refactoring (performance, complexity, etc.)?",
+      "constraints": "What constraints limit the refactoring approach?"
+    },
+    "technical": {
+      "approach": "Describe your refactoring strategy and methodology",
+      "patterns": "What design patterns or architectural principles are you applying?",
+      "decisions": "Key technical decisions made during refactoring",
+      "trade_offs": "What trade-offs were made and why?"
+    },
+    "implementation": {
+      "files_changed": "List all files modified and the nature of refactoring",
+      "backwards_compatibility": "How is backwards compatibility maintained?",
+      "migration": "Any migration steps required for the changes?",
+      "testing": "How did you ensure behavior is preserved?"
+    },
+    "quality": {
+      "improvements": "What specific improvements were achieved?",
+      "metrics_after": "Post-refactoring metrics (performance, complexity, maintainability)",
+      "validation": "How was the refactoring validated?",
+      "regression_testing": "Comprehensive regression testing performed?"
+    },
+    "impact": {
+      "performance": "Performance impact of the refactoring",
+      "maintainability": "How does this improve code maintainability?",
+      "team_impact": "Impact on team development velocity or processes",
+      "future_work": "Follow-up refactoring opportunities identified"
+    }
+  }
+}

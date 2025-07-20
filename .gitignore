@@ -1,0 +1,73 @@
+# Build outputs
+build/
+dist/
+release/
+
+# Dependencies
+node_modules/
+venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Environment files
+.env
+.env.local
+.env.production
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+.Spotlight-V100
+.Trashes
+
+# Cache directories
+.mypy_cache/
+.pytest_cache/
+.ruff_cache/
+.npm/
+.yarn/
+
+# Logs
+*.log
+logs/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Testing
+coverage/
+.coverage
+.nyc_output
+
+# Temporary files
+*.tmp
+*.temp
+.tmp/
+
+# Package files
+*.tgz
+*.tar.gz
+
+# Electron
+out/
+
+# Python
+*.egg-info/
+.tox/
+.coverage
+.pytest_cache/
+.mypy_cache/
+
+# TypeScript
+*.tsbuildinfo
+
+# Development logging config (user-specific)
+.dev-logging-config

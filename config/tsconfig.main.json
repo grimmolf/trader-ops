@@ -1,0 +1,12 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "target": "ES2020",
+    "module": "CommonJS",
+    "outDir": "../build",
+    "noEmit": false,
+    "jsx": "react"
+  },
+  "include": ["../src/frontend/main.ts", "../src/frontend/preload.ts"],
+  "exclude": ["../src/frontend/renderer", "../node_modules", "../build", "../release"]
+}
