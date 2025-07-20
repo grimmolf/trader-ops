@@ -1,0 +1,68 @@
+{
+  "name": "traderterminal-desktop",
+  "version": "1.0.0",
+  "description": "TraderTerminal Desktop Trading Dashboard",
+  "main": "electron/main.js",
+  "scripts": {
+    "dev": "concurrently \"npm run dev:renderer\" \"npm run dev:electron\"",
+    "dev:renderer": "vite",
+    "dev:electron": "wait-on http://localhost:5173 && electron .",
+    "build": "npm run build:renderer && npm run build:electron",
+    "build:renderer": "vite build",
+    "build:electron": "tsc -p electron/tsconfig.json",
+    "start": "electron .",
+    "package:mac": "electron-builder --mac",
+    "package:linux": "electron-builder --linux",
+    "test": "vitest"
+  },
+  "keywords": ["trading", "dashboard", "electron", "vue", "tradingview"],
+  "author": "TraderTerminal",
+  "license": "MIT",
+  "devDependencies": {
+    "@types/node": "^20.10.0",
+    "@vitejs/plugin-vue": "^4.5.0",
+    "concurrently": "^8.2.2",
+    "electron": "^28.0.0",
+    "electron-builder": "^24.8.0",
+    "typescript": "^5.3.0",
+    "vite": "^5.0.0",
+    "vitest": "^1.0.0",
+    "wait-on": "^7.2.0"
+  },
+  "dependencies": {
+    "@electron/remote": "^2.1.0",
+    "pinia": "^2.1.7",
+    "vue": "^3.3.8",
+    "vue-router": "^4.2.5"
+  },
+  "build": {
+    "appId": "com.traderterminal.desktop",
+    "productName": "TraderTerminal",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "electron/main.js",
+      "electron/preload.js",
+      "renderer/dist/**/*"
+    ],
+    "mac": {
+      "category": "public.app-category.finance",
+      "target": [
+        {
+          "target": "dmg",
+          "arch": ["arm64", "x64"]
+        }
+      ]
+    },
+    "linux": {
+      "target": [
+        {
+          "target": "AppImage",
+          "arch": ["x64"]
+        }
+      ],
+      "category": "Finance"
+    }
+  }
+}

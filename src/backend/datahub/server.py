@@ -32,6 +32,9 @@ from ..models.market_data import (
 from ..models.alerts import Alert, AlertEvent, AlertStatus
 from ..models.execution import Order, Execution
 from ..feeds.tradier import TradierConnector
+from ..services.backtest_service import (
+    BacktestService, BacktestRequest, BacktestJob, BacktestStatus, get_backtest_service
+)
 
 
 # Configuration
@@ -40,7 +43,7 @@ class Settings(BaseSettings):
     
     # Server configuration
     host: str = "localhost"
-    port: int = 8000
+    port: int = 8080
     debug: bool = True
     
     # Data sources
@@ -513,6 +516,190 @@ async def delete_alert(alert_id: str):
         del active_alerts[alert_id]
         return {"status": "deleted"}
     raise HTTPException(status_code=404, detail="Alert not found")
+
+
+# ============================================================================
+# Backtesting API Endpoints
+# ============================================================================
+
+@app.post("/api/backtest/strategy")
+async def submit_backtest(
+    request: BacktestRequest,
+    background_tasks: BackgroundTasks
+):
+    """Submit a new strategy backtest"""
+    try:
+        backtest_service = get_backtest_service()
+        backtest_id = await backtest_service.submit_backtest(request, background_tasks)
+        
+        logger.info(f"Backtest submitted: {backtest_id}")
+        
+        return {
+            "backtest_id": backtest_id,
+            "status": "queued",
+            "message": "Backtest submitted successfully"
+        }
+        
+    except Exception as e:
+        logger.error(f"Error submitting backtest: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/backtest/{backtest_id}/status")
+async def get_backtest_status(backtest_id: str):
+    """Check backtest progress and status"""
+    try:
+        backtest_service = get_backtest_service()
+        job = await backtest_service.get_backtest_status(backtest_id)
+        
+        if not job:
+            raise HTTPException(status_code=404, detail="Backtest not found")
+        
+        return {
+            "backtest_id": job.id,
+            "status": job.status,
+            "progress": job.progress,
+            "created_at": job.created_at.isoformat() if job.created_at else None,
+            "started_at": job.started_at.isoformat() if job.started_at else None,
+            "completed_at": job.completed_at.isoformat() if job.completed_at else None,
+            "error_message": job.error_message
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error getting backtest status: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/backtest/{backtest_id}/results")
+async def get_backtest_results(backtest_id: str):
+    """Retrieve backtest results"""
+    try:
+        backtest_service = get_backtest_service()
+        job = await backtest_service.get_backtest_status(backtest_id)
+        
+        if not job:
+            raise HTTPException(status_code=404, detail="Backtest not found")
+        
+        if job.status != BacktestStatus.COMPLETED:
+            raise HTTPException(
+                status_code=400, 
+                detail=f"Backtest not completed. Current status: {job.status}"
+            )
+        
+        return {
+            "backtest_id": job.id,
+            "status": job.status,
+            "request": job.request.dict(),
+            "results": job.result.dict() if job.result else None
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error getting backtest results: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.delete("/api/backtest/{backtest_id}")
+async def cancel_backtest(backtest_id: str):
+    """Cancel a running backtest"""
+    try:
+        backtest_service = get_backtest_service()
+        cancelled = await backtest_service.cancel_backtest(backtest_id)
+        
+        if not cancelled:
+            raise HTTPException(
+                status_code=400, 
+                detail="Backtest cannot be cancelled or does not exist"
+            )
+        
+        return {
+            "backtest_id": backtest_id,
+            "status": "cancelled",
+            "message": "Backtest cancelled successfully"
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error cancelling backtest: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/backtest")
+async def list_backtests(limit: int = 20):
+    """List recent backtests"""
+    try:
+        backtest_service = get_backtest_service()
+        jobs = await backtest_service.list_backtests(limit=limit)
+        
+        return {
+            "backtests": [
+                {
+                    "backtest_id": job.id,
+                    "status": job.status,
+                    "progress": job.progress,
+                    "symbols": job.request.symbols,
+                    "created_at": job.created_at.isoformat() if job.created_at else None,
+                    "completed_at": job.completed_at.isoformat() if job.completed_at else None
+                }
+                for job in jobs
+            ]
+        }
+        
+    except Exception as e:
+        logger.error(f"Error listing backtests: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.websocket("/api/backtest/{backtest_id}/progress")
+async def backtest_progress_websocket(websocket: WebSocket, backtest_id: str):
+    """WebSocket endpoint for real-time backtest progress updates"""
+    await websocket.accept()
+    
+    try:
+        backtest_service = get_backtest_service()
+        
+        # Send initial status
+        job = await backtest_service.get_backtest_status(backtest_id)
+        if not job:
+            await websocket.send_text(json.dumps({
+                "type": "error",
+                "message": "Backtest not found"
+            }))
+            return
+        
+        # Send progress updates every second until completion
+        while job.status in [BacktestStatus.QUEUED, BacktestStatus.RUNNING]:
+            await websocket.send_text(json.dumps({
+                "type": "progress",
+                "backtest_id": job.id,
+                "status": job.status,
+                "progress": job.progress
+            }))
+            
+            await asyncio.sleep(1)
+            job = await backtest_service.get_backtest_status(backtest_id)
+            
+            if not job:
+                break
+        
+        # Send final status
+        if job:
+            await websocket.send_text(json.dumps({
+                "type": "completed",
+                "backtest_id": job.id,
+                "status": job.status,
+                "progress": job.progress,
+                "error_message": job.error_message
+            }))
+        
+    except WebSocketDisconnect:
+        logger.info(f"WebSocket disconnected for backtest {backtest_id}")
+    except Exception as e:
+        logger.error(f"WebSocket error for backtest {backtest_id}: {e}")
 
 
 # ============================================================================
