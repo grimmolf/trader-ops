@@ -38,7 +38,7 @@ We are committed to making participation in this project a harassment-free exper
 
 ### Prerequisites
 Before contributing, ensure you have:
-- **Python 3.11+** with Poetry
+- **Python 3.11+** with UV
 - **Node.js 18+** with npm
 - **Git** with proper configuration
 - Basic understanding of trading concepts (helpful but not required)
@@ -51,10 +51,13 @@ Before contributing, ensure you have:
 git clone https://github.com/YOUR_USERNAME/trader-ops.git
 cd trader-ops
 
-# 3. Set up development environment
-poetry install                           # Python dependencies
-npm install                             # Node.js dependencies
-./scripts/dev-logging/setup-hooks.sh    # Development logging system
+# 3. Set up development environment (automated)
+./scripts/setup_uv.sh                   # Complete UV setup (installs UV, dependencies, logging)
+
+# OR manual setup:
+# uv sync --dev                         # Python dependencies
+# npm install                           # Node.js dependencies
+# ./scripts/dev-logging/setup-hooks.sh  # Development logging system
 
 # 4. Configure environment
 cp .env.example .env
@@ -153,8 +156,9 @@ chore(deps): update FastAPI to version 0.104.1
 - **Trading Integrations**: Tradovate futures, crypto exchanges (CCXT)
 - **Portfolio Analytics**: P&L tracking, performance metrics
 - **Alert Systems**: Price alerts, news alerts, technical indicators
-- **Backtesting**: Strategy testing and historical analysis
+- **Backtesting**: Strategy testing and historical analysis (LEAN integration)
 - **Mobile Interface**: React Native or web mobile version
+- **Performance Optimization**: Further UV workflow enhancements
 
 **Feature contribution process:**
 1. **Discuss first**: Open an issue to discuss the feature
@@ -199,6 +203,7 @@ chore(deps): update FastAPI to version 0.104.1
 ### Before Submitting
 - [ ] Code follows project style guidelines
 - [ ] All tests pass (`npm test`)
+- [ ] UV dependencies are properly specified (if adding packages)
 - [ ] Documentation is updated
 - [ ] Development log is complete
 - [ ] Changes are focused and atomic
@@ -257,7 +262,7 @@ Closes #(issue number)
 ### Python (Backend)
 ```python
 # Style: Black formatting with line length 88
-# Linting: Ruff with project-specific rules
+# Linting: Ruff with project-specific rules (via UV)
 # Type hints: Required for all functions and methods
 
 from typing import List, Optional
@@ -280,6 +285,7 @@ class DataConnector:
 - Maximum line length: 88 characters
 - Use async/await for I/O operations
 - Error handling with specific exception types
+- UV for all Python package management (no Poetry/pip)
 
 ### TypeScript/JavaScript (Frontend)
 ```typescript
@@ -417,13 +423,13 @@ describe('QuoteManager', () => {
 npm test
 
 # Run specific test suites
-poetry run pytest tests/unit/
-poetry run pytest tests/integration/
+uv run pytest tests/unit/
+uv run pytest tests/integration/
 npm run test:unit
 npm run test:e2e
 
 # Run with coverage
-poetry run pytest --cov=src tests/
+uv run pytest --cov=src tests/
 npm run test:coverage
 ```
 
