@@ -61,36 +61,56 @@ class TopstepXManager:
         logger.info("Initializing TopstepX connection...")
         
         try:
-            # Step 1: Test authentication
-            auth_test = await self.connector.test_connection()
-            if auth_test.get("status") != "success":
-                return {
-                    "status": "failed",
-                    "step": "authentication",
-                    "error": auth_test.get("message", "Authentication failed")
-                }
-            
-            # Step 2: Load funded accounts
-            self._accounts = await self.connector.get_accounts()
-            if not self._accounts:
-                logger.warning("No TopstepX accounts found - this may be expected for new users")
-                # Don't fail initialization - user might not have funded accounts yet
-                self._accounts = []
-            
-            # Step 3: Set default account (first active account)
-            for account in self._accounts:
-                if account.status == AccountStatus.ACTIVE:
-                    self._default_account_id = account.account_id
-                    break
-            
-            # Step 4: Initialize real-time monitoring for active accounts
-            if self._accounts:
-                try:
-                    monitoring_started = await self._start_account_monitoring()
-                    self._monitoring_active = monitoring_started
-                except Exception as e:
-                    logger.warning(f"Failed to start account monitoring: {e}")
-                    self._monitoring_active = False
+            # For development/demo mode, use mock authentication
+            if self.credentials.environment == "demo":
+                logger.info("Using TopstepX mock mode for development")
+                
+                # Step 1: Mock authentication
+                auth_result = {"status": "success", "message": "Mock authentication successful"}
+                
+                # Step 2: Load mock accounts from connector
+                self._accounts = await self.connector.get_accounts()
+                
+                # Step 3: Set default account (first active account)
+                for account in self._accounts:
+                    if account.status == AccountStatus.ACTIVE:
+                        self._default_account_id = account.account_id
+                        break
+                
+                # Step 4: Mock monitoring (always successful)
+                self._monitoring_active = True
+                
+            else:
+                # Real API mode (for production)
+                # Step 1: Test authentication
+                auth_test = await self.connector.test_connection()
+                if auth_test.get("status") != "success":
+                    return {
+                        "status": "failed",
+                        "step": "authentication", 
+                        "error": auth_test.get("message", "Authentication failed")
+                    }
+                
+                # Step 2: Load funded accounts
+                self._accounts = await self.connector.get_accounts()
+                if not self._accounts:
+                    logger.warning("No TopstepX accounts found - this may be expected for new users")
+                    self._accounts = []
+                
+                # Step 3: Set default account (first active account)
+                for account in self._accounts:
+                    if account.status == AccountStatus.ACTIVE:
+                        self._default_account_id = account.account_id
+                        break
+                
+                # Step 4: Initialize real-time monitoring for active accounts
+                if self._accounts:
+                    try:
+                        monitoring_started = await self._start_account_monitoring()
+                        self._monitoring_active = monitoring_started
+                    except Exception as e:
+                        logger.warning(f"Failed to start account monitoring: {e}")
+                        self._monitoring_active = False
             
             self._initialized = True
             

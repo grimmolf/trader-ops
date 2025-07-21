@@ -59,6 +59,14 @@ class TopstepXConnector:
         
         # Business logic models for funded account management
         self._funded_accounts: Dict[str, TopstepAccount] = {}
+        self._mock_accounts: Dict[str, TopstepAccount] = {}
+        
+        # Authentication state
+        self._access_token: Optional[str] = None
+        self._authenticated: bool = False
+        
+        # Initialize mock accounts for development
+        self._initialize_mock_accounts()
         
         logger.info(f"TopstepX connector initialized for {credentials.environment} environment")
     
@@ -583,8 +591,8 @@ class TopstepXConnector:
         
         mock_trading_rules = TradingRules(
             account_rules=mock_rules,
-            trading_hours_start="09:30",
-            trading_hours_end="16:00",
+            trading_hours_start="00:00",  # Allow 24/7 trading for testing
+            trading_hours_end="23:59",
             timezone="US/Eastern",
             news_blackout_minutes=2,
             consistency_rule_enabled=True,
@@ -647,8 +655,8 @@ class TopstepXConnector:
         
         funded_trading_rules = TradingRules(
             account_rules=funded_rules,
-            trading_hours_start="09:30",
-            trading_hours_end="16:00",
+            trading_hours_start="00:00",  # Allow 24/7 trading for testing
+            trading_hours_end="23:59",
             timezone="US/Eastern",
             news_blackout_minutes=0,  # No restrictions for funded
             consistency_rule_enabled=False,

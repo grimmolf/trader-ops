@@ -24,16 +24,18 @@ class TopstepXCredentials(BaseModel):
     
     api_key: str = Field(..., description="TopstepX API key from ProjectX dashboard")
     username: str = Field(..., description="TopstepX account username")
-    environment: str = Field(default="LIVE", description="Trading environment: LIVE or DEMO")
+    password: str = Field(..., description="TopstepX account password")
+    environment: str = Field(default="demo", description="Trading environment: live or demo")
     
     class Config:
         str_strip_whitespace = True
     
     @validator('environment')
     def validate_environment(cls, v):
-        if v not in ['LIVE', 'DEMO']:
-            raise ValueError('Environment must be LIVE or DEMO')
-        return v
+        v_lower = v.lower()
+        if v_lower not in ['live', 'demo']:
+            raise ValueError('Environment must be live or demo')
+        return v_lower
 
 
 class TopstepXTokens(BaseModel):
@@ -76,12 +78,12 @@ class TopstepXAuth:
         self._client_session: Optional[httpx.AsyncClient] = None
         
         # TopstepX API URLs
-        if credentials.environment == "LIVE":
+        if credentials.environment == "live":
             self.auth_base_url = "https://api.projectx.com/v1/auth"
             self.api_base_url = "https://api.projectx.com/v1"
             self.ws_market_url = "wss://api.projectx.com/markethub"
             self.ws_user_url = "wss://api.projectx.com/userhub"
-        else:  # DEMO
+        else:  # demo
             self.auth_base_url = "https://demo-api.projectx.com/v1/auth"
             self.api_base_url = "https://demo-api.projectx.com/v1"
             self.ws_market_url = "wss://demo-api.projectx.com/markethub"
