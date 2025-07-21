@@ -4,9 +4,53 @@ import { URL } from 'url';
 
 const isDevelopment = process.env.NODE_ENV !== 'production';
 
+// Configuration for webserver-first architecture
+interface AppConfig {
+  uiUrl: string;
+  apiUrl: string;
+  wsUrl: string;
+  headless: boolean;
+}
+
+function loadConfig(): AppConfig {
+  // Check for headless mode
+  const headless = process.argv.includes('--headless');
+  
+  // Determine UI URL based on environment and configuration
+  let uiUrl: string;
+  
+  if (process.env.UI_URL) {
+    // Explicit override from environment
+    uiUrl = process.env.UI_URL;
+  } else if (isDevelopment) {
+    // Development: Use Vite dev server
+    uiUrl = 'http://localhost:5173';
+  } else {
+    // Production: Use FastAPI web server
+    uiUrl = process.env.WEB_SERVER_URL || 'http://localhost:8000';
+  }
+  
+  return {
+    uiUrl,
+    apiUrl: process.env.API_URL || 'http://localhost:8000',
+    wsUrl: process.env.WS_URL || 'ws://localhost:8000',
+    headless
+  };
+}
+
+const config = loadConfig();
+
 let mainWindow: BrowserWindow | null;
 
 function createWindow(): void {
+    // Skip window creation in headless mode
+    if (config.headless) {
+        console.log('Running in headless mode - no window will be created');
+        console.log(`UI available at: ${config.uiUrl}`);
+        console.log(`API available at: ${config.apiUrl}`);
+        return;
+    }
+
     mainWindow = new BrowserWindow({
         width: 1920,
         height: 1080,
@@ -24,13 +68,21 @@ function createWindow(): void {
         icon: process.platform === 'linux' ? path.join(__dirname, '../renderer/assets/icon.png') : undefined
     });
 
-    // Load the frontend
-    if (isDevelopment) {
-        mainWindow.loadURL('http://localhost:5173');
-        mainWindow.webContents.openDevTools();
-    } else {
-        mainWindow.loadFile(path.join(__dirname, '../renderer/dist/index.html'));
-    }
+    // Load the UI from configured URL
+    console.log(`Loading UI from: ${config.uiUrl}`);
+    mainWindow.loadURL(config.uiUrl);
+
+    // Handle navigation to ensure we stay within our app
+    mainWindow.webContents.on('will-navigate', (event, url) => {
+        const urlObj = new URL(url);
+        const configUrlObj = new URL(config.uiUrl);
+        
+        // Allow navigation within the same origin
+        if (urlObj.origin !== configUrlObj.origin) {
+            event.preventDefault();
+            require('electron').shell.openExternal(url);
+        }
+    });
 
     mainWindow.once('ready-to-show', () => {
         if (mainWindow) {
@@ -55,8 +107,7 @@ function createWindow(): void {
 // IPC handlers for backend communication
 ipcMain.handle('api:request', async (event, endpoint: string, options?: RequestInit) => {
     try {
-        const baseUrl = process.env.BACKEND_URL || 'http://localhost:8000';
-        const response = await fetch(`${baseUrl}${endpoint}`, {
+        const response = await fetch(`${config.apiUrl}${endpoint}`, {
             ...options,
             headers: {
                 'Content-Type': 'application/json',
@@ -73,6 +124,17 @@ ipcMain.handle('api:request', async (event, endpoint: string, options?: RequestI
         console.error('API request failed:', error);
         throw error;
     }
+});
+
+// Add configuration access for renderer process
+ipcMain.handle('app:config', () => {
+    return {
+        uiUrl: config.uiUrl,
+        apiUrl: config.apiUrl,
+        wsUrl: config.wsUrl,
+        headless: config.headless,
+        isDevelopment
+    };
 });
 
 ipcMain.handle('websocket:connect', async (event, url: string) => {

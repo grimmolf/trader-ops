@@ -1,0 +1,26 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: traderterminal-config
+  namespace: traderterminal
+data:
+  # Application Configuration
+  TRADING_ENV: "production"
+  API_BASE_URL: "http://traderterminal-api:8000"
+  
+  # Static File Serving
+  STATIC_FILES_ENABLED: "true"
+  STATIC_FILES_DIRECTORY: "static/web"
+  
+  # CORS Settings
+  CORS_ORIGINS: "http://localhost:5173,http://localhost:3000,http://localhost:8000"
+  
+  # Market Data Settings
+  ENABLE_MOCK_DATA: "false"
+  
+  # Server Configuration
+  HOST: "0.0.0.0"
+  PORT: "8000"
+  
+  # Logging
+  LOG_LEVEL: "info"

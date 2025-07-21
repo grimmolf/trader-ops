@@ -83,3 +83,78 @@ The exposed API key has been successfully removed from the git history using `gi
 - Pre-commit hooks are essential for preventing secret exposure
 - Regular security audits should include checking git history
 - **Always verify API key management capabilities before using a service** 
+
+────────────────────────────────────────
+Host-agnostic parts (already done)  
+• Pre-commit config, security scripts, `.gitleaks.toml`, `.gitignore` additions  
+→ Work on every workstation regardless of remote host.  
+
+Host-specific parts (need parallel jobs)  
+• GitHub → `.github/workflows/security-scanning.yml` (already created)  
+• GitLab → `.gitlab-ci.yml` (to be added)
+
+────────────────────────────────────────
+What we should add for GitLab projects
+
+```yaml
+<code_block_to_apply_changes_from>
+# .gitlab-ci.yml  (minimal version – mirrors the GitHub job names)
+stages:
+  - security
+
+variables:
+  GITLEAKS_CONFIG: ".gitleaks.toml"
+
+security_scanning:
+  stage: security
+  image: golang:1.22-alpine   # contains bash + curl
+  before_script:
+    - apk add --no-cache git curl python3
+    - go install github.com/gitleaks/gitleaks/v8@latest   # installs gitleaks
+    - curl -sSfL https://raw.githubusercontent.com/trufflesecurity/trufflehog/main/scripts/install.sh | sh -s -- -b /usr/local/bin
+  script:
+    - echo "🔍 Running Gitleaks"
+    - gitleaks detect --config $GITLEAKS_CONFIG --redact --no-banner
+    - echo "🔍 Running TruffleHog (verified only)"
+    - trufflehog git file://. --only-verified --fail
+    - echo "🔍 Running custom pattern scan"
+    - bash scripts/security/check-api-keys.sh
+    - bash scripts/security/check-config-files.sh
+  allow_failure: false
+```
+
+• Branch protection / “MR approval rules” → configure in the GitLab UI to **require** that `security_scanning` passes before merge, the same way we require the “Security Scanning” status check on GitHub.  
+• GitLab has its own *Server-side Secret Detection* feature; enable **“Push Rules → Prevent secrets”** or Secret-Scanning under **Settings → Security & Compliance** for an extra layer.
+
+────────────────────────────────────────
+Making the setup script host-aware
+
+Update `global_claude/scripts/setup-project-security.sh`:
+
+1. Detect default remote:  
+   ```bash
+   remote=$(git remote get-url origin 2>/dev/null || true)
+   case "$remote" in
+     *github.com*) host=github ;;
+     *gitlab*)     host=gitlab ;;
+     *)            host=unknown ;;
+   esac
+   ```
+2. Always install the host-agnostic parts.  
+3. If `$host == github` → write the `.github/workflows/…` files.  
+   If `$host == gitlab` → write `.gitlab-ci.yml`.  
+   (If unknown, warn and skip CI config.)
+
+────────────────────────────────────────
+Bottom line
+
+• Nothing in the local tooling needs to change—those protections already cover **all** repositories.  
+• Add a small `.gitlab-ci.yml` (or include a central template) so GitLab projects get the same CI gate.  
+• Enhance the setup script to drop the correct CI file automatically.
+
+Let me know if you’d like me to:
+
+1. generate the ready-to-use `.gitlab-ci.yml`, and/or  
+2. patch the setup script to auto-detect the host and copy the right CI template.
+
+(That is a self-contained, reversible change and keeps behaviour consistent across both GitHub and Red Hat GitLab.) 

@@ -179,12 +179,13 @@ class InternalPaperTradingEngine:
     - Order execution delay simulation
     """
     
-    def __init__(self):
+    def __init__(self, testing_mode: bool = False):
         self.market_data_cache: Dict[str, MarketDataSnapshot] = {}
         self.market_conditions = MarketConditions()
         self.slippage_calc = SlippageCalculator()
         self.commission_calc = CommissionCalculator()
         self._initialized = False
+        self.testing_mode = testing_mode  # Bypass market hours in testing
         
         # Execution parameters
         self.execution_delay_ms = (50, 200)  # Min/max execution delay
@@ -310,8 +311,8 @@ class InternalPaperTradingEngine:
     ) -> Dict[str, Any]:
         """Validate order before execution"""
         
-        # Check market hours
-        if self.market_conditions.market_session == "closed":
+        # Check market hours (skip in testing mode)
+        if not self.testing_mode and self.market_conditions.market_session == "closed":
             return {
                 "status": "rejected",
                 "reason": "Market is closed"

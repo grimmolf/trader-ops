@@ -4,7 +4,7 @@
 
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
 ![Status](https://img.shields.io/badge/status-production%20ready-success.svg)
-![Completion](https://img.shields.io/badge/completion-99%25-brightgreen.svg)
+![Completion](https://img.shields.io/badge/completion-production%20ready-brightgreen.svg)
 ![TradingView](https://img.shields.io/badge/TradingView-integrated-purple.svg)
 ![Brokers](https://img.shields.io/badge/brokers-4%20integrated-brightgreen.svg)
 ![Cost Savings](https://img.shields.io/badge/vs%20Bloomberg-99.8%25%20savings-gold.svg)
@@ -126,6 +126,29 @@ Control where each trade executes using the `account_group` parameter:
 - **Automatic Reconnection**: Never miss a trade due to connection issues
 - **Rate Limiting**: Intelligent request management and error recovery
 - **Open Source**: Full transparency - audit the code yourself
+
+### 🌐 **Flexible Deployment Options (NEW!)**
+- **🖥️ Desktop Application**: Native Electron app for Windows, macOS, and Linux
+- **☁️ Cloud Deployment**: Deploy to Kubernetes for 24/7 operation and team access
+- **🌍 Web Browser Access**: Access your trading platform from any device with a browser
+- **🔧 Hybrid Mode**: Run backend in cloud, access via desktop app or web browser
+- **📱 Multi-User Support**: Share trading infrastructure across multiple users
+- **🚀 Webserver-First Architecture**: Single codebase for all deployment scenarios
+
+**New Deployment Commands:**
+```bash
+# Web-only deployment (cloud-ready)
+npm run build:web && npm run dev:backend
+
+# Desktop app (traditional)
+npm run dev:electron
+
+# Full-stack development
+npm run dev:full  # Backend + Web UI hot reload
+
+# Kubernetes deployment
+npm run k8s:deploy
+```
 
 ---
 

@@ -141,7 +141,7 @@ webhook_rate_limiter = WebhookRateLimit(max_requests=50, window_minutes=1)
 
 def validate_webhook_headers(headers: Dict[str, str]) -> tuple[bool, Optional[str]]:
     """
-    Validate required webhook headers.
+    Validate required webhook headers and security requirements.
     
     Args:
         headers: Request headers dictionary
@@ -160,4 +160,116 @@ def validate_webhook_headers(headers: Dict[str, str]) -> tuple[bool, Optional[st
     if 'application/json' not in content_type:
         return False, f"Invalid content-type: {content_type}. Expected application/json"
     
+    # Check user agent (TradingView should identify itself)
+    user_agent = headers.get('user-agent', '').lower()
+    trusted_agents = ['tradingview', 'tv-webhook', 'webhook', 'python', 'curl']  # Allow testing tools
+    if user_agent and not any(agent in user_agent for agent in trusted_agents):
+        logger.warning(f"Suspicious user agent: {user_agent}")
+    
+    # Check for suspicious headers that might indicate attack attempts
+    suspicious_headers = ['x-forwarded-host', 'x-original-host', 'x-rewrite-url']
+    for suspicious_header in suspicious_headers:
+        if suspicious_header in headers:
+            logger.warning(f"Potentially suspicious header detected: {suspicious_header}")
+    
     return True, None
+
+
+class WebhookSecurityValidator:
+    """Enhanced security validation for webhook requests"""
+    
+    def __init__(self):
+        self.suspicious_patterns = [
+            # SQL injection patterns
+            r"(?i)(union|select|insert|update|delete|drop|exec|script)",
+            # XSS patterns  
+            r"(?i)(<script|javascript:|data:text/html)",
+            # Command injection patterns
+            r"(?i)(;|\||&|`|\$\(|\${)",
+            # Path traversal patterns
+            r"(\.\./|\.\.\\|\.\.\%2f)",
+        ]
+        
+    def validate_payload_security(self, payload: Dict[str, Any]) -> tuple[bool, Optional[str]]:
+        """
+        Validate payload for security threats.
+        
+        Args:
+            payload: Parsed JSON payload
+            
+        Returns:
+            tuple: (is_safe, security_issue)
+        """
+        import re
+        
+        def check_value_security(value, path=""):
+            """Recursively check values for security threats"""
+            if isinstance(value, str):
+                for pattern in self.suspicious_patterns:
+                    if re.search(pattern, value):
+                        return False, f"Suspicious pattern detected in {path}: {pattern}"
+            elif isinstance(value, dict):
+                for key, val in value.items():
+                    safe, issue = check_value_security(val, f"{path}.{key}")
+                    if not safe:
+                        return safe, issue
+            elif isinstance(value, list):
+                for i, val in enumerate(value):
+                    safe, issue = check_value_security(val, f"{path}[{i}]")
+                    if not safe:
+                        return safe, issue
+            return True, None
+        
+        return check_value_security(payload)
+    
+    def validate_tradingview_fields(self, payload: Dict[str, Any]) -> tuple[bool, Optional[str]]:
+        """
+        Validate that payload contains expected TradingView fields.
+        
+        Args:
+            payload: Parsed JSON payload
+            
+        Returns:
+            tuple: (is_valid, validation_error)
+        """
+        required_fields = ['symbol', 'action']
+        recommended_fields = ['quantity', 'price', 'timestamp']
+        
+        # Check required fields
+        for field in required_fields:
+            if field not in payload:
+                return False, f"Missing required field: {field}"
+        
+        # Validate field types and ranges
+        if 'quantity' in payload:
+            try:
+                quantity = float(payload['quantity'])
+                if quantity <= 0 or quantity > 1000:  # Reasonable limits
+                    return False, f"Invalid quantity: {quantity}"
+            except (ValueError, TypeError):
+                return False, "Invalid quantity format"
+        
+        if 'price' in payload:
+            try:
+                price = float(payload['price'])
+                if price <= 0 or price > 1000000:  # Reasonable price limits
+                    return False, f"Invalid price: {price}"
+            except (ValueError, TypeError):
+                return False, "Invalid price format"
+        
+        # Validate symbol format
+        symbol = payload.get('symbol', '')
+        if len(symbol) > 20 or not symbol.replace('-', '').replace('_', '').isalnum():
+            return False, f"Invalid symbol format: {symbol}"
+        
+        # Validate action
+        valid_actions = ['buy', 'sell', 'long', 'short', 'close', 'exit']
+        action = payload.get('action', '').lower()
+        if action not in valid_actions:
+            return False, f"Invalid action: {action}"
+        
+        return True, None
+
+
+# Global security validator instance
+webhook_security_validator = WebhookSecurityValidator()

@@ -9,7 +9,7 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': resolve(__dirname, './src'),
-      '@ui': resolve(__dirname, '../packages/ui/src')
+      '@trader-terminal/ui': resolve(__dirname, '../../packages/ui/src')
     }
   },
   

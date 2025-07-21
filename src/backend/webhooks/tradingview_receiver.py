@@ -9,7 +9,7 @@ import json
 import logging
 import random
 import time
-from typing import Optional
+from typing import Optional, Dict, Any
 
 from fastapi import APIRouter, Request, Header, HTTPException, BackgroundTasks, Depends
 from fastapi.responses import JSONResponse
@@ -19,7 +19,8 @@ from .security import (
     verify_webhook_signature, 
     generate_alert_id,
     webhook_rate_limiter,
-    validate_webhook_headers
+    validate_webhook_headers,
+    webhook_security_validator
 )
 from ..strategies.performance_tracker import get_strategy_tracker
 from ..strategies.models import TradingMode
@@ -122,21 +123,37 @@ async def receive_tradingview_alert(
         # Step 5: Parse and validate alert payload
         try:
             alert_data = json.loads(body.decode('utf-8'))
-            alert = TradingViewAlert(**alert_data)
         except json.JSONDecodeError as e:
             logger.error(f"Invalid JSON from {client_ip}: {e}")
             raise HTTPException(status_code=400, detail=f"Invalid JSON: {e}")
+        
+        # Step 6: Enhanced security validation
+        # Check for security threats in payload
+        is_safe, security_issue = webhook_security_validator.validate_payload_security(alert_data)
+        if not is_safe:
+            logger.error(f"Security threat detected from {client_ip}: {security_issue}")
+            raise HTTPException(status_code=400, detail="Invalid payload format")
+        
+        # Validate TradingView-specific fields
+        is_valid, validation_error = webhook_security_validator.validate_tradingview_fields(alert_data)
+        if not is_valid:
+            logger.error(f"Invalid TradingView payload from {client_ip}: {validation_error}")
+            raise HTTPException(status_code=400, detail=f"Invalid alert format: {validation_error}")
+        
+        # Step 7: Create validated alert object
+        try:
+            alert = TradingViewAlert(**alert_data)
         except Exception as e:
             logger.error(f"Invalid alert format from {client_ip}: {e}")
             raise HTTPException(status_code=400, detail=f"Invalid alert format: {e}")
         
-        # Step 6: Log successful alert receipt
+        # Step 8: Log successful alert receipt
         logger.info(
             f"Valid alert received: {alert.symbol} {alert.action} {alert.quantity} "
             f"(strategy: {alert.strategy}, account: {alert.account_group})"
         )
         
-        # Step 7: Queue for background processing
+        # Step 9: Queue for background processing
         background_tasks.add_task(
             process_tradingview_alert, 
             alert, 
@@ -144,7 +161,7 @@ async def receive_tradingview_alert(
             client_ip
         )
         
-        # Step 8: Return immediate response
+        # Step 10: Return immediate response
         processing_time = (time.time() - start_time) * 1000
         logger.info(f"Webhook processed in {processing_time:.2f}ms")
         

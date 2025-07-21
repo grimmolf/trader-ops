@@ -1,0 +1,57 @@
+version: '3.8'
+
+services:
+  api:
+    build: 
+      context: .
+      target: backend
+    ports:
+      - "8000:8000"
+    environment:
+      - TRADING_ENV=development
+      - DATABASE_URL=postgresql://trader:trader@postgres:5432/traderterminal
+      - REDIS_URL=redis://redis:6379
+      - STATIC_FILES_ENABLED=true
+      - ENABLE_MOCK_DATA=true
+      - LOG_LEVEL=debug
+    volumes:
+      - ./src/backend:/app/src/backend
+      - ./static/web:/app/static/web
+    command: uvicorn src.backend.datahub.server:app --reload --host 0.0.0.0 --port 8000
+    depends_on:
+      - postgres
+      - redis
+    
+  postgres:
+    image: postgres:15
+    environment:
+      - POSTGRES_USER=trader
+      - POSTGRES_PASSWORD=trader
+      - POSTGRES_DB=traderterminal
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+      
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+
+  # Optional: Run web app build watcher
+  web-builder:
+    image: node:18-alpine
+    working_dir: /app
+    volumes:
+      - .:/app
+    command: npm run dev:web
+    ports:
+      - "5173:5173"
+    environment:
+      - VITE_API_URL=http://localhost:8000
+
+volumes:
+  postgres_data:
+  redis_data:
