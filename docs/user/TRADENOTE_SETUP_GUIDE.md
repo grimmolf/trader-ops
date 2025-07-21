@@ -74,9 +74,9 @@ cd /path/to/trader-ops
 **Development Credentials:**
 ```
 MongoDB User: tradenote
-MongoDB Password: tradenote123
-App ID: traderterminal_dev_123
-Master Key: traderterminal_master_dev_456
+MongoDB Password: <DB_PASSWORD>
+App ID: <YOUR_APP_ID>
+Master Key: <YOUR_MASTER_KEY>
 ```
 
 ### Verify Installation
@@ -219,8 +219,8 @@ sudo ./deployment/scripts/tradenote-setup.sh production logs
 ```bash
 # Development (.env or environment)
 TRADENOTE_BASE_URL=http://localhost:8082
-TRADENOTE_APP_ID=traderterminal_dev_123
-TRADENOTE_MASTER_KEY=traderterminal_master_dev_456
+TRADENOTE_APP_ID=<YOUR_APP_ID>
+TRADENOTE_MASTER_KEY=<YOUR_MASTER_KEY>
 TRADENOTE_ENABLED=true
 TRADENOTE_AUTO_SYNC=true
 
@@ -239,8 +239,8 @@ from src.backend.integrations.tradenote.models import TradeNoteConfig
 # Development configuration
 config = TradeNoteConfig(
     base_url="http://localhost:8082",
-    app_id="traderterminal_dev_123",
-    master_key="traderterminal_master_dev_456",
+    app_id="<YOUR_APP_ID>",
+    master_key="<YOUR_MASTER_KEY>",
     enabled=True,
     auto_sync=True,
     timeout_seconds=30,
@@ -256,6 +256,8 @@ await tradenote_service.initialize()
 
 ### Container Configuration
 
+> ⚠️ **SECURITY WARNING**: The examples below use placeholder values. Never commit real credentials to version control. Always use environment variables or secure secret management.
+
 #### Development Override
 ```yaml
 # deployment/compose/docker-compose.dev.yml (excerpt)
@@ -265,9 +267,9 @@ services:
     ports:
       - "8082:8080"
     environment:
-      - MONGO_URI=mongodb://tradenote:tradenote123@tradenote-mongo:27017/tradenote?authSource=admin
-      - APP_ID=traderterminal_dev_123
-      - MASTER_KEY=traderterminal_master_dev_456
+      - MONGO_URI=mongodb://<DB_USER>:<DB_PASSWORD>@tradenote-mongo:27017/tradenote?authSource=admin
+      - APP_ID=<YOUR_APP_ID>
+      - MASTER_KEY=<YOUR_MASTER_KEY>
       - NODE_ENV=development
 ```
 
@@ -304,8 +306,8 @@ services:
 // Frontend configuration interface
 interface TradeNoteConfig {
   base_url: string           // "http://localhost:8082"
-  app_id: string            // "traderterminal_dev_123"
-  master_key: string        // "traderterminal_master_dev_456"
+  app_id: string            // "<YOUR_APP_ID>"
+  master_key: string        // "<YOUR_MASTER_KEY>"
   enabled: boolean          // true
   auto_sync: boolean        // true (sync every 5 minutes)
 }
@@ -376,8 +378,8 @@ docker network inspect deployment_traderterminal
 #### 3. Authentication Errors
 ```bash
 # Verify credentials in development
-echo "App ID: traderterminal_dev_123"
-echo "Master Key: traderterminal_master_dev_456"
+echo "App ID: <YOUR_APP_ID>"
+echo "Master Key: <YOUR_MASTER_KEY>"
 
 # Check production secrets
 sudo cat /etc/traderterminal/secrets/tradenote_app_id.txt
@@ -403,7 +405,7 @@ docker compose -f deployment/compose/docker-compose.dev.yml exec tradenote-mongo
 #### MongoDB Connection Test
 ```bash
 # Test MongoDB connection
-docker compose -f deployment/compose/docker-compose.dev.yml exec tradenote-mongo mongosh "mongodb://tradenote:tradenote123@localhost:27017/tradenote?authSource=admin" --eval "db.stats()"
+docker compose -f deployment/compose/docker-compose.dev.yml exec tradenote-mongo mongosh "mongodb://<DB_USER>:<DB_PASSWORD>@localhost:27017/tradenote?authSource=admin" --eval "db.stats()"
 ```
 
 #### Network Debugging

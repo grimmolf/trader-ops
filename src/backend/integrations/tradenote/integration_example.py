@@ -40,8 +40,8 @@ async def setup_tradenote_integration_example():
     # Alternative: Manual configuration
     # tradenote_config = TradeNoteConfig(
     #     base_url="http://localhost:8082",
-    #     app_id="traderterminal_dev_123",
-    #     master_key="traderterminal_master_dev_456",
+    #     app_id="<YOUR_APP_ID>",
+    #     master_key="<YOUR_MASTER_KEY>",
     #     broker_name="TraderTerminal",
     #     enabled=True
     # )

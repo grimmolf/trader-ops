@@ -320,6 +320,48 @@ GET /api/market/status
 }
 ```
 
+### Security & Testing
+
+#### Security Health Check
+```http
+GET /api/security/health
+```
+
+**Response**:
+```json
+{
+  "status": "secure",
+  "last_scan": "2025-01-21T15:30:00Z",
+  "security_level": "enterprise",
+  "violations": 0,
+  "secret_scan_clean": true
+}
+```
+
+#### Test Paper Trading
+```http
+POST /api/paper-trading/test
+```
+
+**Request Body**:
+```json
+{
+  "test_type": "comprehensive",
+  "symbol": "AAPL",
+  "strategy": "test_momentum"
+}
+```
+
+**Response**:
+```json
+{
+  "test_id": "test_12345",
+  "status": "running",
+  "estimated_duration": "120s",
+  "test_scenarios": 15
+}
+```
+
 #### Create Alert
 ```http
 POST /alerts

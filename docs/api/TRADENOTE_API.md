@@ -397,8 +397,8 @@ interface TradeNoteConfig {
 ```bash
 # Development configuration
 TRADENOTE_BASE_URL=http://localhost:8082
-TRADENOTE_APP_ID=traderterminal_dev_123
-TRADENOTE_MASTER_KEY=traderterminal_master_dev_456
+TRADENOTE_APP_ID=<YOUR_APP_ID>
+TRADENOTE_MASTER_KEY=<YOUR_MASTER_KEY>
 
 # Production configuration (use secure secret management)
 TRADENOTE_BASE_URL=https://tradenote.yourdomain.com

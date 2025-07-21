@@ -66,6 +66,23 @@ jobs:
         with:
           fetch-depth: 0  # Full history for secret scanning
 
+      - name: Run Gitleaks
+        id: gitleaks
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        continue-on-error: true
+          
+      - name: Check for .mcp.json files
+        run: |
+          if find . -name "*.mcp.json" -not -path "./.git/*" -not -name "*.example" | grep -q .; then
+            echo "❌ Found .mcp.json files that should not be committed!"
+            find . -name "*.mcp.json" -not -path "./.git/*" -not -name "*.example"
+            exit 1
+          else
+            echo "✅ No .mcp.json files found"
+          fi
+
       - name: Install truffleHog
         run: |
           curl -sSfL https://raw.githubusercontent.com/trufflesecurity/trufflehog/main/scripts/install.sh | sh -s -- -b /usr/local/bin
@@ -153,7 +170,12 @@ jobs:
               'interactive_brokers': r'[iI][bB][_\s]*[aA]pi[_\s]*[kK]ey["\s]*[:=]["\s]*([A-Za-z0-9]{16,})',
               'binance_api': r'[bB]inance[_\s]*[aA]pi[_\s]*[kK]ey["\s]*[:=]["\s]*([A-Za-z0-9]{64})',
               'coinbase_key': r'[cC]oinbase[_\s]*[aA]pi[_\s]*[kK]ey["\s]*[:=]["\s]*([A-Za-z0-9]{32})',
-              'generic_trading_key': r'(?i)(trading|broker|exchange)[_\s]*(?:api[_\s]*)?(?:key|token|secret)["\s]*[:=]["\s]*([A-Za-z0-9]{16,})'
+              'generic_trading_key': r'(?i)(trading|broker|exchange)[_\s]*(?:api[_\s]*)?(?:key|token|secret)["\s]*[:=]["\s]*([A-Za-z0-9]{16,})',
+              'tradenote_credentials': r'tradenote[0-9]{3}|traderterminal_(?:dev|prod)_[0-9]{3}',
+              'mongodb_uri': r'mongodb://[^:]+:[^@]+@[^/]+',
+              'hex_api_key': r'["\'][a-fA-F0-9]{32,64}["\']',
+              'magic_api_key': r'(?i)magic[_\s]*api[_\s]*key["\s]*[:=]["\s]*[a-fA-F0-9]{32,}',
+              'mcp_config': r'\.mcp\.json|mcp\.config\.json'
           }
           
           def scan_file(filepath):
