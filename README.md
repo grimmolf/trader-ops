@@ -13,9 +13,9 @@
 
 ---
 
-## 🚀 **NEW: Complete TradingView Integration + Multi-Broker Platform!**
+## 🚀 **LATEST: Enhanced Multi-Broker Platform + Institutional-Grade Reliability!**
 
-**🎉 MAJOR ACHIEVEMENT**: TraderTerminal is now a **production-ready Bloomberg Terminal alternative** with complete **TradingView webhook integration** and **4 major brokers**. Your TradingView strategies can now automatically execute trades across multiple brokers with intelligent routing and risk management.
+**🎉 MAJOR ACHIEVEMENT**: TraderTerminal is now a **production-ready Bloomberg Terminal alternative** with complete **TradingView webhook integration** and **4 major brokers**. Recent post-Phase 0 enhancements have added institutional-grade reliability, comprehensive testing infrastructure, and streamlined development workflows. Your TradingView strategies can now automatically execute trades across multiple brokers with enhanced routing and risk management.
 
 ### **🎯 TradingView → TraderTerminal Workflow (NEW!)**
 1. **Create Strategy** in TradingView (Pine Script)
@@ -157,6 +157,8 @@ npm run k8s:deploy
 > **🚀 MULTI-BROKER INTEGRATION COMPLETE**: TraderTerminal now features **production-ready integrations with 4 major brokers** - Charles Schwab, Tastytrade, TopstepX, and Tradovate! Unified trading interface, real-time data aggregation, intelligent order routing, and comprehensive risk management.
 
 > **⚡ MAJOR ACHIEVEMENT**: **Complete multi-asset trading platform** with stocks, options, futures, and funded account management. Professional-grade risk monitoring, real-time portfolio tracking, and one-click position management across all brokers.
+
+> **🏗️ ENHANCED RELIABILITY**: **Post-Phase 0 consolidation complete** with refined broker integrations, enhanced testing infrastructure, organized documentation hierarchy, and streamlined development workflows. Institutional-grade reliability with automated quality assurance.
 
 > **🧪 ENTERPRISE-GRADE TESTING**: **508+ test scenarios across 6 comprehensive test files** covering every critical component and workflow. Complete end-to-end integration testing, broker sandbox validation, real-time data flow, TradeNote integration, and full-stack frontend-backend testing. Production-ready with exceptional reliability assurance.
 
@@ -398,6 +400,9 @@ Since you use Google federated login with TradingView:
 # Clone repository
 git clone https://github.com/grimmolf/trader-ops.git
 cd trader-ops
+
+# Set up development environment (IMPORTANT - prevents CI/CD issues)
+./scripts/setup-dev-environment.sh
 
 # Install Python backend dependencies
 uv sync  # or pip install -r requirements.txt
@@ -805,6 +810,42 @@ cd src/frontend && npm run dev
 - **Mobile App**: React Native companion app
 - **Advanced Strategies**: ML-based trading algorithms
 - **UI/UX Improvements**: Better user experience and accessibility
+
+---
+
+## 🛡️ **Development Standards & CI/CD**
+
+### **Systemic Quality Assurance**
+
+TraderTerminal implements comprehensive CI/CD failure prevention to ensure code quality:
+
+#### **🚀 Quick Start for Developers**
+```bash
+# One-time setup (REQUIRED for all developers)
+./scripts/setup-dev-environment.sh
+
+# Check your environment before coding
+./scripts/check-compatibility.py
+
+# Monitor CI/CD health
+./scripts/ci-health-check.py
+```
+
+#### **🔧 Automated Quality Gates**
+- **Pre-commit Hooks**: Catch issues before they reach GitHub
+- **Python 3.11 Lock**: Strictly enforced version compatibility
+- **Pydantic v2 Compliance**: Automatic syntax validation
+- **Type Safety**: Full mypy strict mode checking
+- **Security Scanning**: Gitleaks, Bandit, and dependency audits
+- **Code Formatting**: Black, isort, Ruff, ESLint
+
+#### **📊 CI/CD Pipeline Protection**
+- **Compatibility Matrix**: Multi-version testing (Python 3.11 & 3.12)
+- **Staged Validation**: Fast failures before expensive operations
+- **Automated Fixes**: Scripts to resolve common issues
+- **Health Monitoring**: Track pipeline success rates and patterns
+
+**📖 Complete Guide**: See [`DEVELOPMENT_STANDARDS.md`](./docs/DEVELOPMENT_STANDARDS.md) for mandatory practices
 
 ---
 

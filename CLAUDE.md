@@ -168,20 +168,33 @@ Total NEW monthly cost: **$41/month** (user already has main services)
 2. **Day 3**: Performance optimization
 3. **Days 4-5**: Documentation & release
 
-## LLM Orchestration Directives
+### Goal
+- Focus on **critical path**: Futures trading through funded accounts
+- Leverage user's **existing services** (TradingView Premium, Tradovate, Schwab)
+- Target **2-3 week MVP** instead of longer timeline
 
-You are **Claude**, acting as an orchestrator for the TraderTerminal project.
+### Allowed
+✓ Installing / running external tooling (brew, dnf, go install, podman, etc.)  
+✓ Reading & writing repo files  
+✓ Container orchestration via Podman  
+✓ Using TradingView webhooks (user has Premium)
+✓ Delegating to subagents for complex analysis
 
-### Subagent Configuration
-This project follows the global subagent configuration:
-- **Planning Agent (o3)**: Break complex tasks into executable steps, coordinate multi-broker integrations
-- **Analysis Agent (Gemini Pro)**: Analyze large API documentation (≥300 KB), process market data structures
-- **Scaling**: N = ceil(estimated_task_tokens / effective_context_window)
-- **Triggers**: Automatically spawn subagents for files > 300KB or token count > 2500
+### Forbidden
+✗ Building Rithmic data integration (user uses Tradovate/NinjaTrader)
+✗ Complex multi-feed aggregation (use direct connections)
+✗ Hallucinating paths or docs—mark `TODO:` if unsure  
+✗ Hard-coding API keys or credentials  
+✗ Skipping development log updates
+✗ Running containers as root user
 
-When working on complex broker integrations or analyzing large API responses, delegate to appropriate subagents:
-- Use `/plan` flag for multi-step broker integrations
-- Use `/analyze-large` flag for processing API documentation or market data structures
+### Warnings
+- User trades futures on funded accounts (TopStepX, Apex, TradeDay)
+- macOS is primary platform, Fedora is secondary
+- Respect funded account rules (drawdown limits, position sizing)
+- Always validate broker API responses with Pydantic models
+
+## Development Guidelines
 
 ### Development Logging Requirements
 **CRITICAL**: All development work MUST maintain the development log at `docs/CLAUDE_DEVELOPMENT_LOG.md`
@@ -191,8 +204,49 @@ Before each significant change:
    - **Context**: What problem are you solving?
    - **Changes**: Bullet list of key changes
    - **Validation**: How did you test?
-2. Track progress in `docs/development-logs/` directory [[memory:3819249]]
+2. Track progress in `docs/development-logs/CLAUDE_DEVELOPMENT_LOG.md`  
 3. Use `[skip-dev-log]` flag only for emergency fixes
+
+### Pre-Commit Workflow
+1. Run tests: `pytest tests/`
+2. Update development log: `docs/CLAUDE_DEVELOPMENT_LOG.md`
+3. Security scan: `bandit -r src/backend/`
+4. Update progress tracking in `docs/development-logs/`
+
+### Development & Pre-Commit Checklist
+
+**CRITICAL**  Every non-emergency change **must** be fully documented in `docs/CLAUDE_DEVELOPMENT_LOG.md`. Keep the commit message short; put the deep details in the log.
+
+1. **Update the Development Log** (`docs/CLAUDE_DEVELOPMENT_LOG.md`)  
+   - **Context** – What problem are you solving?  
+   - **Changes** – Bullet list of key updates  
+   - **Validation** – How you tested the changes  
+   - **Notes / Links** – Extra discussion, screenshots, references  
+
+**IMPORTANT** Use `[skip-dev-log]` **only** for emergency hot-fixes.
+
+2. **Craft a Concise Commit Message**
+
+   Commit message template:
+
+   ```text
+   <50–72-character summary>  (#<issue-id> | DEVLOG:<entry-id>)
+
+   Optional short body (wrap at 72 chars).
+   Leave deep details in CLAUDE_DEVELOPMENT_LOG.md.
+
+
+### Code Style
+- **Python**: Type hints everywhere, Pydantic for validation, async/await for I/O
+- **TypeScript**: Strict mode, Vue 3 Composition API, no any types
+- **Documentation**: Docstrings for all public functions, README for each module
+- **Security**: Follow Red Hat security baseline for all implementations
+
+### Testing Requirements
+- Unit tests for all business logic (pytest)
+- Integration tests for API endpoints
+- E2E tests for critical user flows (Playwright)
+- Minimum 80% code coverage
 
 ### Red Hat Security Practices
 Apply Red Hat security baseline to all code:
@@ -213,56 +267,6 @@ Apply Red Hat security baseline to all code:
 - ✓ Security event logging (90-day retention)
 - ✓ Quarterly dependency updates (tracked in CHANGELOG.md)
 - ✓ OAuth2 token refresh logging
-
-### Goal
-- Focus on **critical path**: Futures trading through funded accounts
-- Leverage user's **existing services** (TradingView Premium, Tradovate, Schwab)
-- Target **2-3 week MVP** instead of longer timeline
-
-### Allowed
-✓ Calling both MCPs  
-✓ Installing / running external tooling (brew, dnf, go install, podman, etc.)  
-✓ Reading & writing repo files  
-✓ Container orchestration via Podman  
-✓ Using TradingView webhooks (user has Premium)
-✓ Delegating to subagents for complex analysis
-
-### Forbidden
-✗ Building Rithmic data integration (user uses Tradovate/NinjaTrader)
-✗ Complex multi-feed aggregation (use direct connections)
-✗ Hallucinating paths or docs—mark `TODO:` if unsure  
-✗ Hard-coding API keys or credentials  
-✗ Skipping development log updates
-✗ Running containers as root user
-
-### Warnings
-- User trades futures on funded accounts (TopStep, Apex, TradeDay)
-- macOS is primary platform, Fedora is secondary
-- Focus on execution and risk management over charting
-- Respect funded account rules (drawdown limits, position sizing)
-- Always validate broker API responses with Pydantic models
-
-## Development Guidelines
-
-### Pre-Commit Workflow
-1. Run tests: `pytest tests/`
-2. Update development log: `docs/CLAUDE_DEVELOPMENT_LOG.md`
-3. Security scan: `bandit -r src/backend/`
-4. Update progress tracking in `docs/development-logs/`
-
-### Code Style
-- **Python**: Type hints everywhere, Pydantic for validation, async/await for I/O
-- **TypeScript**: Strict mode, Vue 3 Composition API, no any types
-- **Documentation**: Docstrings for all public functions, README for each module
-- **Security**: Follow Red Hat security baseline for all implementations
-
-### Testing Requirements
-- Unit tests for all business logic (pytest)
-- Integration tests for API endpoints
-- E2E tests for critical user flows (Playwright)
-- Minimum 80% code coverage
-
-### Security Practices
 
 #### API Key Management
 - All broker credentials stored in environment variables

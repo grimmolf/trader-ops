@@ -1,7 +1,135 @@
+# Pre-commit hooks for TraderTerminal
+# Prevents CI/CD issues by catching them locally first
+
+default_language_version:
+  python: python3.11
+
 repos:
-  - repo: https://github.com/RedHatProductSecurity/rh-pre-commit
-    rev: v1.1.0  # keep in sync with InfoSec announcements
+  # Python formatting and linting
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.1.6
     hooks:
-      - id: rh-gitleaks
-        additional_dependencies: []  # rh-pre-commit bundles its own gitleaks
-        args: ["--additional-config=.gitleaks.toml"] 
+      - id: ruff
+        args: [--fix, --exit-non-zero-on-fix]
+        exclude: ^(build|dist|.venv|migrations)/
+
+  - repo: https://github.com/psf/black
+    rev: 23.11.0
+    hooks:
+      - id: black
+        language_version: python3.11
+        exclude: ^(build|dist|.venv|migrations)/
+
+  - repo: https://github.com/pycqa/isort
+    rev: 5.12.0
+    hooks:
+      - id: isort
+        args: ["--profile", "black"]
+        exclude: ^(build|dist|.venv|migrations)/
+
+  # Type checking
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v1.7.1
+    hooks:
+      - id: mypy
+        additional_dependencies: 
+          - pydantic>=2.0.0
+          - types-requests
+          - types-PyYAML
+        args: [--install-types, --non-interactive]
+        exclude: ^(tests|docs|scripts)/
+
+  # Security checks
+  - repo: https://github.com/zricethezav/gitleaks
+    rev: v8.18.0
+    hooks:
+      - id: gitleaks
+
+  - repo: https://github.com/PyCQA/bandit
+    rev: 1.7.5
+    hooks:
+      - id: bandit
+        args: ["-c", "pyproject.toml"]
+        additional_dependencies: ["bandit[toml]"]
+        exclude: ^(tests|docs)/
+
+  # YAML/JSON validation
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.5.0
+    hooks:
+      - id: check-yaml
+        args: [--allow-multiple-documents]
+      - id: check-json
+      - id: check-toml
+      - id: check-merge-conflict
+      - id: check-case-conflict
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: mixed-line-ending
+        args: [--fix=lf]
+      - id: detect-private-key
+      - id: check-added-large-files
+        args: [--maxkb=1000]
+
+  # JavaScript/TypeScript checks
+  - repo: https://github.com/pre-commit/mirrors-eslint
+    rev: v8.56.0
+    hooks:
+      - id: eslint
+        files: \.(js|jsx|ts|tsx|vue)$
+        additional_dependencies:
+          - eslint@8.56.0
+          - '@typescript-eslint/parser@6.19.0'
+          - '@typescript-eslint/eslint-plugin@6.19.0'
+          - 'eslint-plugin-vue@9.20.0'
+
+  # Custom local hooks
+  - repo: local
+    hooks:
+      # Python version check
+      - id: python-version-check
+        name: Check Python version
+        entry: bash -c 'python_version=$(uv run python --version 2>&1 | cut -d" " -f2 | cut -d"." -f1,2); required="3.11"; if [[ "$python_version" != "$required" ]]; then echo "❌ Python $required required, found $python_version"; exit 1; fi'
+        language: system
+        pass_filenames: false
+        always_run: true
+
+      # Pydantic v2 syntax check
+      - id: pydantic-v2-check
+        name: Check Pydantic v2 syntax
+        entry: bash -c 'if grep -r "@validator\|class Config:" src/ --include="*.py" 2>/dev/null; then echo "❌ Found Pydantic v1 syntax - use @field_validator and ConfigDict"; exit 1; fi'
+        language: system
+        pass_filenames: false
+        files: \.py$
+
+      # Test runner for changed files
+      - id: pytest-changed
+        name: Run tests for changed files
+        entry: bash -c 'changed_files=$(git diff --cached --name-only | grep "\.py$" | grep -E "(src|tests)/" || true); if [ -n "$changed_files" ]; then uv run pytest tests/unit -x --tb=short; fi'
+        language: system
+        pass_filenames: false
+        files: \.(py)$
+
+      # Check for missing imports
+      - id: import-check
+        name: Check imports
+        entry: bash -c 'files=$(git diff --cached --name-only | grep "\.py$" || true); for f in $files; do if grep -q "ConfigDict" "$f" && ! grep -q "from pydantic import.*ConfigDict" "$f"; then echo "❌ Missing ConfigDict import in $f"; exit 1; fi; done'
+        language: system
+        pass_filenames: false
+        files: \.py$
+
+# Configuration for specific hooks
+exclude: |
+  (?x)^(
+    .*\.egg-info/|
+    \.git/|
+    \.mypy_cache/|
+    \.pytest_cache/|
+    \.venv/|
+    build/|
+    dist/|
+    node_modules/|
+    __pycache__/
+  )
+
+fail_fast: false 

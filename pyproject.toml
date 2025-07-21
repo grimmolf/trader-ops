@@ -7,7 +7,7 @@ authors = [
 ]
 readme = "README.md"
 license = {text = "MIT"}
-requires-python = ">=3.11"
+requires-python = ">=3.11,<3.13"
 keywords = ["trading", "dashboard", "fastapi", "electron", "tradingview", "real-time", "market-data"]
 classifiers = [
     "Development Status :: 4 - Beta",
