@@ -46,6 +46,7 @@ dependencies = [
     "cryptography>=41.0.0",
     "keyring>=24.0.0",
     "SecretStorage>=3.3.0; sys_platform == 'linux'",
+    "pre-commit>=4.2.0",
 ]
 
 [dependency-groups]
